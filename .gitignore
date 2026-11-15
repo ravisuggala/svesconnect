@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+.vscode/
+
+# legacy sources and reference material (not part of the deployable app)
+bvritn-main/
+svecw-main/
+reference/
+*.zip
+release/

@@ -16,7 +16,7 @@ Single app: React 19 + Vite (`src/`) and Express 5 + MySQL via `mysql2` (`server
 - Fonts: Plus Jakarta Sans (headings), Inter (body).
 - Components live in `src/ui/index.jsx` (Button, Card, Input, Select, Field, Modal, Table, Badge, Navbar, Sidebar, ToastProvider/useToast, Loader, Skeleton, EmptyState). Use them; add new shared ones there.
 - Motion 150-250ms; respect prefers-reduced-motion. Forms show inline validation messages.
-- Logo: `public/logo-mark.svg` (also favicon). Site name: "SVES Connect", organisation "Sri Vishnu Educational Society".
+- Logo: the ORIGINAL Vishnu logo `public/logo.jpg` (from reference/svecw_logo.jpg; never redraw or alter it; favicon `public/favicon.png`). Site name: "SVES Connect", organisation "Sri Vishnu Educational Society".
 
 ## Status
 - Done: design system, shell/layouts, home, login/register (any email), MySQL auth, AI assistant (`/assistant`).

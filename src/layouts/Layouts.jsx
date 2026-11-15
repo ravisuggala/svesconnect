@@ -23,7 +23,7 @@ function Footer() {
   return (
     <footer style={{ background: 'var(--c-ink)', color: 'var(--c-on-ink)', padding: 'var(--s-6) 0', marginTop: 'var(--s-7)' }}>
       <div className="container row" style={{ justifyContent: 'space-between' }}>
-        <span className="row"><img src="/logo-mark.svg" alt="" width="32" height="32" /><span><b>SVES Connect</b><br /><small>Sri Vishnu Educational Society · svesconnect.in</small></span></span>
+        <span className="row"><img className="logo-chip" src="/logo.jpg" alt="Vishnu Universal Learning logo" height="52" /><span><b>SVES Connect</b><br /><small>Sri Vishnu Educational Society · svesconnect.in</small></span></span>
         <small>© {new Date().getFullYear()} Sri Vishnu Educational Society. All rights reserved.</small>
       </div>
     </footer>

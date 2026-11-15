@@ -46,7 +46,8 @@
 .navbar { position:sticky; top:0; z-index:500; height:var(--nav-h); background:rgba(255,255,255,.88); backdrop-filter:blur(10px); border-bottom:1px solid var(--c-border); }
 .navbar .container { height:100%; display:flex; align-items:center; gap:var(--s-4); }
 .brand { display:flex; align-items:center; gap:10px; color:var(--c-ink); text-decoration:none!important; }
-.brand img { width:38px; height:38px; } .brand b { font:800 16px var(--f-head); display:block; line-height:1.1; } .brand small { font-size:11px; color:var(--c-muted); display:block; }
+.brand img { height:46px; width:auto; }
+.logo-chip { background:#fff; padding:6px 10px; border-radius:var(--r-md); } .brand b { font:800 16px var(--f-head); display:block; line-height:1.1; } .brand small { font-size:11px; color:var(--c-muted); display:block; }
 .nav-links { display:flex; align-items:center; gap:4px; margin-left:auto; }
 .nav-links a { color:var(--c-text); font-weight:600; font-size:14px; padding:8px 12px; border-radius:var(--r-md); text-decoration:none; transition:var(--t); }
 .nav-links a:hover { background:var(--c-primary-soft); } .nav-links a.active { color:var(--c-primary); background:var(--c-primary-soft); }

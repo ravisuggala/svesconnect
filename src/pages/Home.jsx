@@ -38,7 +38,7 @@ export default function Home() {
               <Button as={Link} to="/login" variant="light" size="lg">Sign in to the portal <ArrowRight size={18} /></Button>
             </div>
           </div>
-          <div className="hero-art fade-up" aria-hidden="true"><img src="/logo-mark.svg" alt="" /></div>
+          <div className="hero-art fade-up" aria-hidden="true"><img src="/logo.jpg" alt="Vishnu Universal Learning logo" /></div>
         </div>
       </section>
 

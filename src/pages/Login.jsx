@@ -44,7 +44,7 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-side">
-        <img src="/logo-mark.svg" alt="" width="84" height="84" />
+        <img className="logo-chip" src="/logo.jpg" alt="Vishnu Universal Learning logo" height="110" />
         <h2>SVES Connect</h2>
         <p>Sri Vishnu Educational Society. One portal for infrastructure, events, projects and research across all SVES institutions.</p>
       </div>

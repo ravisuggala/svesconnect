@@ -3,7 +3,7 @@
 .hero h1 { color:#fff; margin:var(--s-4) 0; } .hero .grad { background:linear-gradient(90deg,#F5B87A,#F08327); -webkit-background-clip:text; background-clip:text; color:transparent; }
 .hero .badge { background:rgba(255,255,255,.15); color:#fff; }
 .lead { font-size:1.15rem; max-width:56ch; color:#F3E9F6; margin-bottom:var(--s-5); }
-.hero-art { display:flex; justify-content:center; } .hero-art img { width:min(300px,70%); filter:drop-shadow(0 20px 40px rgba(0,0,0,.35)); animation:float 6s ease-in-out infinite; }
+.hero-art { display:flex; justify-content:center; } .hero-art img { width:min(260px,70%); background:#fff; padding:var(--s-5); border-radius:var(--r-lg); box-shadow:var(--sh-3); animation:float 6s ease-in-out infinite; }
 @keyframes float { 50% { transform:translateY(-12px) rotate(2deg); } }
 .section { padding-top:var(--s-7); } .wide { max-width:72ch; }
 .ico { color:var(--c-primary); margin-bottom:var(--s-3); }

@@ -18,7 +18,9 @@ Create a database and a user, add the user to the database with ALL PRIVILEGES. 
    - Application root `svesconnect`, application URL `svesconnect.in`
    - Startup file `server/server.js`
 3. Add environment variables (same names as `.env.example`): `DB_HOST=localhost`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `GROK_API_KEY`, `GROQ_MODEL`, `NODE_ENV=production`.
-4. Click **Run NPM Install**, then run `npm run migrate` from the app's terminal (or "Run JS script" > migrate).
+4. In a terminal as the account user (not root), activate the Node environment shown on the app page, `cd ~/svesconnect`, then run:
+   `npm install --include=dev --ignore-scripts && npm run build && npm run migrate`
+   (`--ignore-scripts` avoids the `sharp` binary download, which can time out on servers; the AI assistant then loads its libraries on first use and the rest of the site is unaffected.)
 5. Restart the app and open https://svesconnect.in (enable AutoSSL in cPanel for HTTPS).
 
 ## Notes

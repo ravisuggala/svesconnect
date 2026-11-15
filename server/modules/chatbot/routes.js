@@ -1,7 +1,6 @@
 // Module 2: AI assistant (retrieval-augmented). Embeddings run locally; answers come from Groq's OpenAI-compatible API.
 const express = require("express");
 const axios = require("axios");
-const { pipeline } = require("@xenova/transformers");
 const pool = require("../../db/pool");
 const { rateLimit } = require("../../core/middleware");
 
@@ -14,6 +13,8 @@ let vectorStore = [];
 async function createEmbedding(text) {
   if (!embedder) {
     console.log("Loading embedding model...");
+    // Loaded lazily so the rest of the site still starts if this optional AI library (or its native sharp binary) is unavailable.
+    const { pipeline } = require("@xenova/transformers");
     embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
     console.log("Embedding model loaded");
   }

@@ -28,6 +28,10 @@ export default defineConfig([
     },
   },
   {
+    files: ['src/ui/**', 'src/core/**'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
+  {
     files: ['server/**/*.js'],
     extends: [js.configs.recommended],
     languageOptions: { ecmaVersion: 2022, sourceType: 'commonjs', globals: globals.node },

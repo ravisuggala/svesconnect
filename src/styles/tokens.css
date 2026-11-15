@@ -1,0 +1,46 @@
+/* SVES Connect design tokens. Derived from the Vishnu logo. Never hardcode colors in components. */
+:root {
+  /* brand */
+  --c-primary: #A1248D;
+  --c-primary-hover: #7E1B6F;
+  --c-primary-soft: #F6E6F3;
+  --c-secondary: #C2570C;        /* orange 600: white text passes AA (4.5:1) */
+  --c-secondary-hover: #9A4509;
+  --c-secondary-brand: #F08327;  /* logo orange: graphics only */
+  --c-secondary-soft: #FFF1E3;
+  --c-accent: #A8CC3C;           /* logo lime: decoration, status dots */
+  --c-accent-text: #4D7C0F;
+  --c-accent-soft: #F3F9E1;
+  /* neutrals */
+  --c-bg: #FBF8FC;
+  --c-surface: #FFFFFF;
+  --c-surface-2: #F5EFF7;
+  --c-text: #1F1F1F;
+  --c-muted: #5B5568;
+  --c-border: #E6DDEA;
+  --c-ink: #2A0F36;              /* deep brand purple for dark areas */
+  --c-on-ink: #F3E9F6;
+  --c-on-primary: #FFFFFF;
+  /* feedback */
+  --c-success: #3F6212;  --c-success-bg: #F7FEE7;
+  --c-warning: #92400E;  --c-warning-bg: #FFF7ED;
+  --c-error: #B42318;    --c-error-bg: #FEF3F2;
+  --c-info: #7E1B6F;     --c-info-bg: #F6E6F3;
+  /* gradients */
+  --g-hero: linear-gradient(135deg, #2A0F36 0%, #7E1B6F 55%, #C2570C 130%);
+  --g-brand: linear-gradient(90deg, #A1248D, #C2570C);
+  --g-soft: linear-gradient(180deg, #FBF8FC, #F5EFF7);
+  /* type */
+  --f-head: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --f-body: 'Inter', system-ui, sans-serif;
+  --f-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  /* space / radius / shadow / motion */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 72px;
+  --r-sm: 8px; --r-md: 12px; --r-lg: 18px; --r-pill: 999px;
+  --sh-1: 0 1px 2px rgba(42,15,54,.06), 0 1px 3px rgba(42,15,54,.08);
+  --sh-2: 0 6px 18px rgba(42,15,54,.10);
+  --sh-3: 0 18px 48px rgba(42,15,54,.18);
+  --t: 180ms cubic-bezier(.2,.7,.3,1);
+  --nav-h: 64px;
+  --side-w: 256px;
+}

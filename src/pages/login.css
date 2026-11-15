@@ -1,0 +1,5 @@
+.login-page { display:grid; grid-template-columns:1fr 1fr; min-height:calc(100vh - var(--nav-h)); }
+.login-side { background:var(--g-hero); color:#F3E9F6; padding:var(--s-7); display:flex; flex-direction:column; justify-content:center; gap:var(--s-3); }
+.login-side h2 { color:#fff; } .login-side p { max-width:44ch; }
+.login-form { display:flex; align-items:center; justify-content:center; padding:var(--s-5); }
+@media (max-width:860px) { .login-page { grid-template-columns:1fr; } .login-side { padding:var(--s-5); } }

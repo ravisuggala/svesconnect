@@ -16,7 +16,7 @@ const COLLEGES = [
 // Hierarchy: admin creates/resets principals, principals create HODs, HODs create lab coordinators (role lab_incharge).
 const CHILD_ROLE = { admin: "principal", principal: "hod", hod: "lab_incharge" };
 
-// Initial password for every account created by the hierarchy; users must change it at first login.
+// Initial password for every account created by the hierarchy; users may change it any time (it is not forced).
 const defaultPassword = () => process.env.DEFAULT_PASSWORD || "svesconnect@123";
 
 module.exports = { COLLEGES, CHILD_ROLE, defaultPassword };

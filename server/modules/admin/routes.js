@@ -90,7 +90,7 @@ router.post("/users", async (req, res) => {
   if (Object.keys(fields).length) return res.status(400).json({ error: "Please correct the highlighted fields.", fields });
   const name = t(b.name, 120) || { admin: "Administrator", principal: `Principal, ${college.code}`, hod: `HOD, ${department}`, lab_incharge: `${labName} Coordinator`, event_coordinator: `${event?.name} Coordinator`, event_member: email.split("@")[0] }[role];
   const [ins] = await pool.query(
-    "INSERT INTO users (college_id, name, email, password_hash, role, department, lab_name, event_id, created_by, must_change_password) VALUES (?,?,?,?,?,?,?,?,?,1)",
+    "INSERT INTO users (college_id, name, email, password_hash, role, department, lab_name, event_id, created_by, must_change_password) VALUES (?,?,?,?,?,?,?,?,?,0)",
     [college.id, name, email, hashPassword(password), role, department, role === "lab_incharge" ? labName : null, event ? event.id : null, req.user.id]);
   if (role === "lab_incharge") {
     await pool.query("INSERT IGNORE INTO labs (college_id, department, name, incharge_user_id) VALUES (?,?,?,?)", [college.id, department, labName, ins.insertId]);
@@ -109,14 +109,14 @@ router.patch("/users/:id", async (req, res) => {
   const { action } = req.body || {};
   const self = u.id === req.user.id;
   if (action === "reset" || action === "unlock") {
-    // unlock = make the account usable again: enable it, back to the default password, forced change at next sign-in
-    await pool.query("UPDATE users SET password_hash = ?, must_change_password = 1, status = 'active' WHERE id = ?", [hashPassword(defaultPassword()), u.id]);
+    // unlock = make the account usable again: enable it, back to the default password
+    await pool.query("UPDATE users SET password_hash = ?, must_change_password = 0, status = 'active' WHERE id = ?", [hashPassword(defaultPassword()), u.id]);
     return res.json({ ok: true, initialPassword: defaultPassword() });
   }
   if (action === "setPassword") {
     const pw = String(req.body.password || "");
     if (pw.length < 8) return res.status(400).json({ error: "Use at least 8 characters.", fields: { password: "Use at least 8 characters." } });
-    await pool.query("UPDATE users SET password_hash = ?, must_change_password = ? WHERE id = ?", [hashPassword(pw), self ? 0 : 1, u.id]);
+    await pool.query("UPDATE users SET password_hash = ?, must_change_password = ? WHERE id = ?", [hashPassword(pw), 0, u.id]);
     return res.json({ ok: true, initialPassword: pw });
   }
   if (action === "disable" || action === "enable") {

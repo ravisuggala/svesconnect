@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS users (
   created_by           INT UNSIGNED NULL,
   lab_id               INT UNSIGNED NULL,
   event_id             INT UNSIGNED NULL,
-  must_change_password TINYINT(1) NOT NULL DEFAULT 1,
+  must_change_password TINYINT(1) NOT NULL DEFAULT 0,
   status               ENUM('active','disabled') NOT NULL DEFAULT 'active',
   created_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_user_college_email (college_id, email),

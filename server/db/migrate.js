@@ -61,6 +61,8 @@ async function upgradeEquipment() {
   const byCode = Object.fromEntries(rows.map((r) => [r.code, r]));
   console.log(`Colleges ready: ${rows.length}`);
 
+  // Nobody is forced to change the default password any more (they can do it any time from "Change password").
+  await pool.query("UPDATE users SET must_change_password = 0 WHERE must_change_password = 1");
   // Admin (belongs to the central office); pre-existing admins are attached to it.
   await pool.query("UPDATE users SET college_id = ?, must_change_password = 0 WHERE role = 'admin' AND college_id IS NULL", [byCode.CENTRAL.id]);
   const { ADMIN_EMAIL, ADMIN_PASSWORD } = process.env;
@@ -78,7 +80,7 @@ async function upgradeEquipment() {
     const cid = byCode[c.code].id;
     const [[p]] = await pool.query("SELECT id, email FROM users WHERE college_id = ? AND role = 'principal' LIMIT 1", [cid]);
     if (!p) {
-      await pool.query("INSERT INTO users (college_id, name, email, password_hash, role, must_change_password) VALUES (?,?,?,?, 'principal', 1)", [cid, `Principal, ${c.code}`, c.principal, hashPassword(defaultPassword())]);
+      await pool.query("INSERT INTO users (college_id, name, email, password_hash, role, must_change_password) VALUES (?,?,?,?, 'principal', 0)", [cid, `Principal, ${c.code}`, c.principal, hashPassword(defaultPassword())]);
       made++;
     } else if (p.email !== c.principal && !(await has("SELECT 1 FROM users WHERE college_id = ? AND email = ? AND id <> ?", [cid, c.principal, p.id]))) {
       await pool.query("UPDATE users SET email = ? WHERE id = ?", [c.principal, p.id]);

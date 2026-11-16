@@ -58,7 +58,6 @@ export default function Accounts({ kind }) {
     ...(kind === 'hod' ? [{ key: 'department', label: 'Department' }] : []),
     ...(kind === 'lab_incharge' ? [{ key: 'labName', label: 'Lab' }, { key: 'department', label: 'Department' }] : []),
     { key: 'status', label: 'Status', render: (u) => <Badge tone={u.status === 'active' ? 'success' : 'error'}>{u.status === 'active' ? 'Active' : 'Disabled'}</Badge> },
-    { key: 'pw', label: 'Password', render: (u) => (u.mustChangePassword ? <Badge tone="warning">Default, not changed</Badge> : <Badge>Personal</Badge>) },
     { key: 'actions', label: '', render: (u) => (
       <span className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
         <Button variant="ghost" size="sm" onClick={() => act(u, 'reset')}><KeyRound size={14} /> Reset</Button>
@@ -91,7 +90,7 @@ export default function Accounts({ kind }) {
             <Input label="Lab name" value={form.labName} onChange={set('labName')} error={errors.labName} />
           </>}
           <Input label="Name (optional)" value={form.name} onChange={set('name')} />
-          <Input label="Password (optional)" type="text" value={form.password} onChange={set('password')} error={errors.password} hint="Leave blank to use the default password. The user must change it at first sign-in." />
+          <Input label="Password (optional)" type="text" value={form.password} onChange={set('password')} error={errors.password} hint="Leave blank to use the default password." />
           {errors.form && <p role="alert" style={{ color: 'var(--c-error)' }}>{errors.form}</p>}
           <div className="row" style={{ justifyContent: 'flex-end' }}>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
@@ -103,7 +102,7 @@ export default function Accounts({ kind }) {
       <Modal open={!!created} title={created?.reset ? 'Password reset' : 'Account ready'} onClose={() => setCreated(null)}>
         <p>Share these sign-in details. Choose <b>{data.college?.name || college.toUpperCase()}</b> on the login page.</p>
         <p style={{ fontFamily: 'var(--f-mono)', background: 'var(--c-surface-2)', padding: 'var(--s-3)', borderRadius: 'var(--r-md)' }}>{created?.email}<br />{created?.password}</p>
-        <p className="muted">They will be asked to set their own password at first sign-in.</p>
+        <p className="muted">They can change it any time from “Change password”.</p>
         <Button onClick={() => setCreated(null)}>Done</Button>
       </Modal>
     </div>

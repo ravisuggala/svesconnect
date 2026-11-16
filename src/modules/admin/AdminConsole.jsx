@@ -83,7 +83,7 @@ function Users({ colleges }) {
     { key: 'college', label: 'College', render: (u) => u.college || '—' },
     { key: 'role', label: 'Role', render: (u) => <Badge tone={u.role === 'admin' ? 'primary' : ''}>{ROLE_LABEL[u.role] || u.role}</Badge> },
     { key: 'where', label: 'Department / lab / event', render: where },
-    { key: 'status', label: 'Status', render: (u) => <Badge tone={u.status === 'active' ? 'success' : 'error'}>{u.status === 'active' ? (u.mustChangePassword ? 'Active · default password' : 'Active') : 'Disabled'}</Badge> },
+    { key: 'status', label: 'Status', render: (u) => <Badge tone={u.status === 'active' ? 'success' : 'error'}>{u.status === 'active' ? 'Active' : 'Disabled'}</Badge> },
     { key: 'act', label: 'Actions', render: (u) => (
       <span className="row adm-act">
         <Button variant="ghost" size="sm" title="Unlock: enable and reset to the default password" onClick={() => window.confirm(`Unlock ${u.email}? The password goes back to the default.`) && act(u, 'unlock')}><Unlock size={14} /></Button>
@@ -113,7 +113,7 @@ function Users({ colleges }) {
           {['hod', 'lab_incharge'].includes(form.role) && <Input label="Department" value={form.department} onChange={set('department')} error={errors.department} />}
           {form.role === 'lab_incharge' && <Input label="Lab name" value={form.labName} onChange={set('labName')} error={errors.labName} />}
           {['event_coordinator', 'event_member'].includes(form.role) && <Select label="Event" value={form.eventId} onChange={set('eventId')} options={eventOpts} error={errors.eventId} hint="Create events from the college's Events page." />}
-          <Input label="Password (optional)" value={form.password} onChange={set('password')} error={errors.password} hint="Leave blank for the default password. They must change it at first sign-in." />
+          <Input label="Password (optional)" value={form.password} onChange={set('password')} error={errors.password} hint="Leave blank for the default password." />
           {errors.form && <p role="alert" style={{ color: 'var(--c-error)' }}>{errors.form}</p>}
           <div className="row" style={{ justifyContent: 'flex-end' }}><Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</Button></div>
         </form>
@@ -129,7 +129,7 @@ function Users({ colleges }) {
 
       <Modal open={!!pw} title={`Set password for ${pw?.u.email}`} onClose={() => setPw(null)}>
         {pw && <form onSubmit={(e) => { e.preventDefault(); act(pw.u, 'setPassword', { password: pw.password }) }}>
-          <Input label="New password" value={pw.password} onChange={(e) => setPw({ ...pw, password: e.target.value })} hint="At least 8 characters. They are asked to change it at next sign-in." />
+          <Input label="New password" value={pw.password} onChange={(e) => setPw({ ...pw, password: e.target.value })} hint="At least 8 characters." />
           <div className="row" style={{ justifyContent: 'flex-end' }}><Button type="button" variant="ghost" onClick={() => setPw(null)}>Cancel</Button><Button type="submit" disabled={pw.password.length < 8}>Set password</Button></div>
         </form>}
       </Modal>
@@ -137,7 +137,7 @@ function Users({ colleges }) {
       <Modal open={!!creds} title={creds?.reset ? 'Sign-in details updated' : 'Account created'} onClose={() => setCreds(null)}>
         <p>Share these sign-in details. On the login page choose <b>{creds?.college}</b>.</p>
         <p className="adm-cred">{creds?.email}<br />{creds?.password}</p>
-        <p className="muted">They will be asked to set their own password at first sign-in.</p><Button onClick={() => setCreds(null)}>Done</Button>
+        <p className="muted">They can change it any time from “Change password”.</p><Button onClick={() => setCreds(null)}>Done</Button>
       </Modal>
     </>
   )

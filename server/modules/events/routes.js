@@ -106,7 +106,7 @@ async function createLogin(req, ev, role, email, name, department) {
   const [dup] = await pool.query("SELECT id FROM users WHERE college_id = ? AND email = ?", [req.college.id, email]);
   if (dup.length) return { error: "That email already has an account in this college." };
   const [ins] = await pool.query(
-    "INSERT INTO users (college_id, name, email, password_hash, role, department, event_id, created_by, must_change_password) VALUES (?,?,?,?,?,?,?,?,1)",
+    "INSERT INTO users (college_id, name, email, password_hash, role, department, event_id, created_by, must_change_password) VALUES (?,?,?,?,?,?,?,?,0)",
     [req.college.id, name || (role === "event_coordinator" ? `${ev.name} Coordinator` : email.split("@")[0]), email, hashPassword(defaultPassword()), role, department || null, ev.id, req.me.id]);
   return { id: ins.insertId, email };
 }
@@ -186,7 +186,7 @@ collegeRouter.patch("/events/:id/people/:uid", needEvent(async (req, res, ev) =>
   if (!u || u.id === req.me.id) return res.status(404).json({ error: "Account not found." });
   if (u.role === "event_coordinator" && req.me.role === "event_coordinator") return res.status(403).json({ error: "Only the HOD can change the coordinator." });
   const { action } = req.body || {};
-  if (action === "reset") { await pool.query("UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?", [hashPassword(defaultPassword()), u.id]); return res.json({ ok: true, initialPassword: defaultPassword() }); }
+  if (action === "reset") { await pool.query("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?", [hashPassword(defaultPassword()), u.id]); return res.json({ ok: true, initialPassword: defaultPassword() }); }
   if (action === "disable" || action === "enable") { await pool.query("UPDATE users SET status = ? WHERE id = ?", [action === "disable" ? "disabled" : "active", u.id]); return res.json({ ok: true }); }
   res.status(400).json({ error: "Unknown action." });
 }));

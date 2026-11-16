@@ -80,7 +80,7 @@ collegeRouter.post("/users", needScope, async (req, res) => {
   const role = req.scope.role;
   const name = String(b.name || "").trim() || (role === "hod" ? `HOD, ${department}` : `${labName} Coordinator`);
   const [ins] = await pool.query(
-    "INSERT INTO users (college_id, name, email, password_hash, role, department, lab_name, created_by, must_change_password) VALUES (?,?,?,?,?,?,?,?,1)",
+    "INSERT INTO users (college_id, name, email, password_hash, role, department, lab_name, created_by, must_change_password) VALUES (?,?,?,?,?,?,?,?,0)",
     [college.id, name, email, hashPassword(password), role, department, labName, me.id]
   );
   if (role === "lab_incharge") {
@@ -101,7 +101,7 @@ collegeRouter.patch("/users/:id", needScope, async (req, res) => {
   if (!target) return res.status(404).json({ error: "Account not found." });
   const { action } = req.body || {};
   if (action === "reset") {
-    await pool.query("UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?", [hashPassword(defaultPassword()), target.id]);
+    await pool.query("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?", [hashPassword(defaultPassword()), target.id]);
     return res.json({ ok: true, initialPassword: defaultPassword() });
   }
   if (action === "disable" || action === "enable") {

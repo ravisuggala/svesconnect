@@ -71,7 +71,7 @@ export default function EventsManage() {
         {created?.none ? <p>The event is ready. Open it and use <b>People</b> to add its coordinator.</p> : <>
           <p>Share these sign-in details with the coordinator. They choose <b>{college.toUpperCase()}</b> on the login page.</p>
           <p style={{ fontFamily: 'var(--f-mono)', background: 'var(--c-surface-2)', padding: 'var(--s-3)', borderRadius: 'var(--r-md)' }}>{created?.email}<br />{created?.password}</p>
-          <p className="muted">They will be asked to set their own password at first sign-in.</p></>}
+          <p className="muted">They can change it any time from “Change password”.</p></>}
         <Button onClick={() => setCreated(null)}>Done</Button>
       </Modal>
     </div>

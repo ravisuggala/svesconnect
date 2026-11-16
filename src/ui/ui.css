@@ -47,7 +47,7 @@
 .navbar .container { height:100%; display:flex; align-items:center; gap:var(--s-4); }
 .brand { display:flex; align-items:center; gap:10px; color:var(--c-ink); text-decoration:none!important; }
 .brand img { height:46px; width:auto; }
-.logo-chip { background:#fff; padding:6px 10px; border-radius:var(--r-md); } .brand b { font:800 16px var(--f-head); display:block; line-height:1.1; } .brand small { font-size:11px; color:var(--c-muted); display:block; }
+.logo-chip { background:#fff; padding:6px 10px; border-radius:var(--r-md); width:auto; object-fit:contain; align-self:flex-start; } .brand b { font:800 16px var(--f-head); display:block; line-height:1.1; } .brand small { font-size:11px; color:var(--c-muted); display:block; }
 .nav-links { display:flex; align-items:center; gap:4px; margin-left:auto; }
 .nav-links a { color:var(--c-text); font-weight:600; font-size:14px; padding:8px 12px; border-radius:var(--r-md); text-decoration:none; transition:var(--t); }
 .nav-links a:hover { background:var(--c-primary-soft); } .nav-links a.active { color:var(--c-primary); background:var(--c-primary-soft); }

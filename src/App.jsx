@@ -11,7 +11,12 @@ import Documents from './pages/Documents'
 import ModulePlaceholder from './modules/ModulePlaceholder'
 import ChangePassword from './pages/ChangePassword'
 import Accounts from './modules/org/Accounts'
-import LabHome from './modules/org/LabHome'
+import LabHome from './modules/labs/LabHome'
+import EquipmentFlow from './modules/labs/EquipmentFlow'
+import EquipmentView from './modules/labs/EquipmentView'
+import LabsOverview from './modules/labs/LabsOverview'
+import LabDetail from './modules/labs/LabDetail'
+import { ExploreCollege, ExploreColleges, ExploreEquipment, ExploreLab } from './modules/labs/Explore'
 import AdminColleges from './modules/org/AdminColleges'
 
 function ScrollToHash() {
@@ -34,6 +39,10 @@ export default function App() {
         <Route element={<PublicLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/explore" element={<ExploreColleges />} />
+          <Route path="/explore/c/:code" element={<ExploreCollege />} />
+          <Route path="/explore/lab/:id" element={<ExploreLab />} />
+          <Route path="/explore/equipment/:id" element={<ExploreEquipment />} />
         </Route>
         <Route element={<PortalLayout />}>
           <Route path="/portal" element={<RequireAuth><Portal /></RequireAuth>} />
@@ -44,6 +53,10 @@ export default function App() {
             <Route path="hods" element={<RequireAuth roles={['principal']}><Accounts kind="hod" /></RequireAuth>} />
             <Route path="labs" element={<RequireAuth roles={['hod']}><Accounts kind="lab_incharge" /></RequireAuth>} />
             <Route path="lab" element={<RequireAuth roles={['lab_incharge']}><LabHome /></RequireAuth>} />
+            <Route path="lab/equipment/:id/fill" element={<RequireAuth roles={['lab_incharge']}><EquipmentFlow /></RequireAuth>} />
+            <Route path="lab-details" element={<RequireAuth roles={['hod', 'principal', 'admin']}><LabsOverview /></RequireAuth>} />
+            <Route path="lab-details/:labId" element={<RequireAuth roles={['hod', 'principal', 'admin', 'lab_incharge']}><LabDetail /></RequireAuth>} />
+            <Route path="equipment/:id" element={<EquipmentView />} />
             <Route path="principal" element={<RequireAuth roles={['admin']}><Accounts kind="principal" /></RequireAuth>} />
           </Route>
           {MODULES.map((m) => {

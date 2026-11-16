@@ -10,7 +10,6 @@
     "dev:client": "vite",
     "build": "vite build",
     "start": "NODE_ENV=production node server/server.js",
-    "seed": "node server/seed.js",
     "lint": "eslint .",
     "migrate": "node server/db/migrate.js",
     "package": "node scripts/package.js"

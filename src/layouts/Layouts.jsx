@@ -18,7 +18,7 @@ function UserArea() {
   )
 }
 
-const publicLinks = [{ to: '/', label: 'Home' }, { to: '/#modules', label: 'Modules' }, { to: '/assistant', label: 'AI Assistant' }, { to: '/portal', label: 'Portal' }]
+const publicLinks = [{ to: '/', label: 'Home' }, { to: '/explore', label: 'Explore Labs' }, { to: '/#modules', label: 'Modules', plain: true }, { to: '/assistant', label: 'AI Assistant' }, { to: '/portal', label: 'Portal' }]
 
 function Footer() {
   return (
@@ -40,8 +40,8 @@ export function PortalLayout() {
   const { user } = useAuth()
   const c = user?.college?.code?.toLowerCase()
   const mine = !user ? [] : {
-    principal: [{ to: `/c/${c}/hods`, label: 'Heads of Department', icon: Users }],
-    hod: [{ to: `/c/${c}/labs`, label: 'Lab Coordinators', icon: Users }],
+    principal: [{ to: `/c/${c}/lab-details`, label: 'Labs & equipment', icon: FlaskConical }, { to: `/c/${c}/hods`, label: 'Heads of Department', icon: Users }],
+    hod: [{ to: `/c/${c}/lab-details`, label: 'Labs & equipment', icon: FlaskConical }, { to: `/c/${c}/labs`, label: 'Lab Coordinators', icon: Users }],
     lab_incharge: [{ to: `/c/${c}/lab`, label: 'My lab', icon: FlaskConical }],
   }[user.role] || []
   const groups = [

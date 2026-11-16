@@ -111,7 +111,7 @@ export function Navbar({ links = [], right, onMenu }) {
         {onMenu && <Button variant="ghost" size="sm" className="side-toggle" onClick={onMenu} aria-label="Toggle sidebar"><Menu size={18} /></Button>}
         <Link to="/" className="brand"><img src="/logo.jpg" alt="Vishnu Universal Learning logo" /><span><b>SVES Connect</b><small>Sri Vishnu Educational Society</small></span></Link>
         <nav className={cx('nav-links', open && 'open')} onClick={() => setOpen(false)}>
-          {links.map((l) => <NavLink key={l.to} to={l.to} end={l.to === '/'}>{l.label}</NavLink>)}
+          {links.map((l) => (l.plain ? <Link key={l.to} to={l.to}>{l.label}</Link> : <NavLink key={l.to} to={l.to} end={l.to === '/'}>{l.label}</NavLink>))}
           {right}
         </nav>
         <button className="nav-toggle" aria-label="Menu" onClick={() => setOpen(!open)}>{open ? <X size={20} /> : <Menu size={20} />}</button>

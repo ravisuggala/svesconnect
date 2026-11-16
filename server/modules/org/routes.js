@@ -5,6 +5,7 @@ const pool = require("../../db/pool");
 const { hashPassword } = require("../../core/security");
 const { requireAuth, requireRole } = require("../../core/middleware");
 const { CHILD_ROLE, defaultPassword } = require("../../core/org");
+const { collegeContext } = require("../../core/college");
 
 const emailOk = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const COLS = "id, name, email, role, department, lab_name AS labName, status, must_change_password AS mustChangePassword, created_at AS createdAt";
@@ -32,19 +33,7 @@ adminRouter.get("/colleges", requireAuth, requireRole("admin"), async (req, res)
 // ---- Per-college routes ----
 const collegeRouter = express.Router({ mergeParams: true });
 
-// Loads the college and a fresh copy of the caller; enforces that people only act inside their own college.
-collegeRouter.use(requireAuth, async (req, res, next) => {
-  try {
-    const [[college]] = await pool.query("SELECT * FROM colleges WHERE code = ?", [String(req.params.college).toUpperCase()]);
-    if (!college) return res.status(404).json({ error: "Unknown college." });
-    const [[me]] = await pool.query("SELECT * FROM users WHERE id = ? AND status = 'active'", [req.user.id]);
-    if (!me) return res.status(401).json({ error: "Session expired." });
-    if (me.role !== "admin" && me.college_id !== college.id) return res.status(403).json({ error: "You do not have access to this college." });
-    if (me.must_change_password) return res.status(403).json({ error: "Please change your default password first." });
-    req.college = college; req.me = me;
-    next();
-  } catch (err) { console.error("college ctx:", err.message); res.status(500).json({ error: "Server error." }); }
-});
+collegeRouter.use(collegeContext);
 
 // Which accounts the caller manages, as a SQL condition.
 function scope(me, college) {
@@ -94,6 +83,13 @@ collegeRouter.post("/users", needScope, async (req, res) => {
     "INSERT INTO users (college_id, name, email, password_hash, role, department, lab_name, created_by, must_change_password) VALUES (?,?,?,?,?,?,?,?,1)",
     [college.id, name, email, hashPassword(password), role, department, labName, me.id]
   );
+  if (role === "lab_incharge") {
+    // Each coordinator owns a lab record, so labs stay separate within college > department.
+    await pool.query("INSERT IGNORE INTO labs (college_id, department, name, incharge_user_id) VALUES (?,?,?,?)", [college.id, department, labName, ins.insertId]);
+    await pool.query("UPDATE labs SET incharge_user_id = ? WHERE college_id = ? AND department = ? AND name = ? AND incharge_user_id IS NULL", [ins.insertId, college.id, department, labName]);
+    const [[lab]] = await pool.query("SELECT id FROM labs WHERE college_id = ? AND department = ? AND name = ?", [college.id, department, labName]);
+    await pool.query("UPDATE users SET lab_id = ? WHERE id = ?", [lab.id, ins.insertId]);
+  }
   const [[user]] = await pool.query(`SELECT ${COLS} FROM users WHERE id = ?`, [ins.insertId]);
   res.status(201).json({ user, initialPassword: password });
 });

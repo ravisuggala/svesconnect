@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, Bot, Building2, GraduationCap, Layers, Network, QrCode, Search, ShieldCheck, Sparkles, Users } from 'lucide-react'
+import { ArrowRight, Bot, Building2, FlaskConical, GraduationCap, Layers, Network, QrCode, Search, ShieldCheck, Sparkles, Users } from 'lucide-react'
 import { Badge, Button, Card } from '../ui'
 import { MODULES } from '../core/modules'
 import './home.css'
@@ -34,7 +34,7 @@ export default function Home() {
             <h1>SVES <span className="grad">Connect</span></h1>
             <p className="lead">One connected portal to showcase, manage and discover the infrastructure, equipment, competencies and projects across every SVES institution.</p>
             <div className="row">
-              <Button as={Link} to="/assistant" variant="accent" size="lg"><Bot size={18} /> Ask the AI assistant</Button>
+              <Button as={Link} to="/explore" variant="accent" size="lg"><FlaskConical size={18} /> Explore labs & equipment</Button>
               <Button as={Link} to="/login" variant="light" size="lg">Sign in to the portal <ArrowRight size={18} /></Button>
             </div>
           </div>

@@ -11,3 +11,20 @@ export async function api(path, { method = 'GET', body } = {}) {
   if (!res.ok) throw Object.assign(new Error(data.error || 'Request failed'), { status: res.status, fields: data.fields })
   return data
 }
+
+/** Fetch a protected file with the sign-in token and open it in a new tab. */
+export async function openFile(path) {
+  const t = getToken()
+  const res = await fetch(`/api${path}`, { headers: t ? { Authorization: `Bearer ${t}` } : {} })
+  if (!res.ok) throw new Error('Could not open the file')
+  const url = URL.createObjectURL(await res.blob())
+  window.open(url, '_blank', 'noopener')
+  setTimeout(() => URL.revokeObjectURL(url), 60000)
+}
+
+export const fileToBase64 = (file) => new Promise((resolve, reject) => {
+  const r = new FileReader()
+  r.onload = () => resolve(String(r.result).split(',')[1] || '')
+  r.onerror = () => reject(r.error)
+  r.readAsDataURL(file)
+})

@@ -13,15 +13,18 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "12mb" })); // uploads arrive as base64 JSON
 app.use(optionalAuth);
 
 // ---- Module APIs: each module mounts under /api/<module> ----
 const org = require("./modules/org/routes");
+const labs = require("./modules/labs/routes");
 app.use("/api/auth", require("./modules/auth/routes"));
 app.use("/api/colleges", org.publicRouter);
 app.use("/api/admin", org.adminRouter);
 app.use("/api/c/:college", org.collegeRouter);
+app.use("/api/c/:college", labs.collegeRouter);
+app.use("/api/public", labs.publicRouter);
 app.use("/api/chatbot", chatbot.router);
 
 app.get("/api/health", async (req, res) => {

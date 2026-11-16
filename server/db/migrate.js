@@ -13,11 +13,23 @@ const indexExists = (t, i) => has("SELECT 1 FROM information_schema.statistics W
 
 // Brings a database created by an earlier version up to the current users table.
 async function upgradeUsers() {
-  const add = { college_id: "INT UNSIGNED NULL", department: "VARCHAR(120) NULL", lab_name: "VARCHAR(160) NULL", created_by: "INT UNSIGNED NULL", must_change_password: "TINYINT(1) NOT NULL DEFAULT 1" };
+  const add = { lab_id: "INT UNSIGNED NULL", college_id: "INT UNSIGNED NULL", department: "VARCHAR(120) NULL", lab_name: "VARCHAR(160) NULL", created_by: "INT UNSIGNED NULL", must_change_password: "TINYINT(1) NOT NULL DEFAULT 1" };
   for (const [col, def] of Object.entries(add)) if (!(await columnExists("users", col))) await pool.query(`ALTER TABLE users ADD COLUMN ${col} ${def}`);
   if (await indexExists("users", "email")) await pool.query("ALTER TABLE users DROP INDEX email");
   if (!(await indexExists("users", "uq_user_college_email"))) await pool.query("ALTER TABLE users ADD UNIQUE KEY uq_user_college_email (college_id, email)");
   if (!(await indexExists("users", "idx_users_scope"))) await pool.query("ALTER TABLE users ADD KEY idx_users_scope (college_id, role, department)");
+}
+
+// Older databases had a simple equipment table (used by the first chatbot version); add the new columns.
+async function upgradeEquipment() {
+  const add = {
+    college_id: "INT UNSIGNED NULL", lab_id: "INT UNSIGNED NULL", template_key: "VARCHAR(40) NULL", data: "LONGTEXT NULL",
+    status: "ENUM('draft','submitted','verified','approved','rejected') NOT NULL DEFAULT 'draft'", review_note: "TEXT NULL", created_by: "INT UNSIGNED NULL",
+    submitted_at: "TIMESTAMP NULL", verified_by: "INT UNSIGNED NULL", verified_at: "TIMESTAMP NULL", approved_by: "INT UNSIGNED NULL", approved_at: "TIMESTAMP NULL",
+    updated_at: "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+  };
+  for (const [col, def] of Object.entries(add)) if (!(await columnExists("equipment", col))) await pool.query(`ALTER TABLE equipment ADD COLUMN ${col} ${def}`);
+  if (!(await indexExists("equipment", "idx_equipment_lab"))) await pool.query("ALTER TABLE equipment ADD KEY idx_equipment_lab (lab_id, status)");
 }
 
 (async () => {
@@ -32,6 +44,7 @@ async function upgradeUsers() {
   const sql = fs.readFileSync(path.join(__dirname, "schema.sql"), "utf8");
   for (const stmt of sql.split(/;\s*\n/).map((s) => s.replace(/^\s*--.*$/gm, "").trim()).filter(Boolean)) await pool.query(stmt);
   await upgradeUsers();
+  await upgradeEquipment();
   console.log("Schema applied.");
 
   // Colleges
@@ -70,5 +83,14 @@ async function upgradeUsers() {
     }
   }
   console.log(`Principal accounts: ${made} created, ${fixed} email(s) corrected.`);
+
+  // Every lab coordinator owns a lab record (created when the HOD adds the coordinator; backfilled here for older accounts).
+  const [orphans] = await pool.query("SELECT id, college_id, department, lab_name FROM users WHERE role = 'lab_incharge' AND lab_id IS NULL AND lab_name IS NOT NULL");
+  for (const u of orphans) {
+    await pool.query("INSERT IGNORE INTO labs (college_id, department, name, incharge_user_id) VALUES (?,?,?,?)", [u.college_id, u.department, u.lab_name, u.id]);
+    const [[lab]] = await pool.query("SELECT id FROM labs WHERE college_id = ? AND department = ? AND name = ?", [u.college_id, u.department, u.lab_name]);
+    await pool.query("UPDATE users SET lab_id = ? WHERE id = ?", [lab.id, u.id]);
+  }
+  if (orphans.length) console.log(`Lab records created for ${orphans.length} existing coordinator(s).`);
   await pool.end();
 })().catch((e) => { console.error("Migration failed:", e.message); process.exit(1); });

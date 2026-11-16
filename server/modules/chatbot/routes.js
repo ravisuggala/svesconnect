@@ -23,16 +23,25 @@ async function createEmbedding(text) {
 }
 
 async function ingest() {
-  const [rows] = await pool.query("SELECT name, category, department, description, specifications, location FROM equipment");
+  // Only approved (published) equipment feeds the assistant, with its college and lab so answers stay specific.
+  const [rows] = await pool.query(
+    `SELECT e.name, e.category, e.department, e.description, e.specifications, e.location, e.data, l.name AS lab, c.name AS college
+       FROM equipment e JOIN labs l ON l.id = e.lab_id JOIN colleges c ON c.id = e.college_id WHERE e.status = 'approved'`);
   const store = [];
   for (const eq of rows) {
+    const d = eq.data ? JSON.parse(eq.data) : {};
     const text = `
-Name: ${eq.name}
-Category: ${eq.category}
+College: ${eq.college}
 Department: ${eq.department}
-Description: ${eq.description}
-Specifications: ${eq.specifications}
-Location: ${eq.location}
+Lab: ${eq.lab}
+Name: ${eq.name}
+Type: ${eq.category}
+Manufacturer: ${d.manufacturer || ""} ${d.model || ""}
+Description: ${eq.description || ""}
+Specifications: ${eq.specifications || ""}
+Applications: ${(d.applications || []).join("; ")}
+Location: ${eq.location || ""}
+Status: ${d.current_status || ""}
 `;
     store.push({ embedding: await createEmbedding(text), text });
   }

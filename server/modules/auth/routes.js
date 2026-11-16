@@ -46,4 +46,19 @@ router.post("/change-password", requireAuth, rateLimit({ max: 10 }), async (req,
   res.json({ ok: true });
 });
 
+// Change the password from the login page (college + email + current password), without signing in first. Rate limited.
+router.post("/change-password-login", rateLimit({ max: 10 }), async (req, res) => {
+  const { college = "", email = "", current = "", next = "" } = req.body || {};
+  const fields = {};
+  if (String(next).length < 8) fields.next = "Use at least 8 characters.";
+  else if (next === defaultPassword()) fields.next = "Choose a password different from the default.";
+  else if (next === current) fields.next = "The new password must differ from the current one.";
+  if (Object.keys(fields).length) return res.status(400).json({ error: "Please correct the highlighted fields.", fields });
+  const [[c]] = await pool.query("SELECT * FROM colleges WHERE code = ?", [String(college).trim().toUpperCase()]);
+  const [[u]] = c ? await pool.query("SELECT * FROM users WHERE college_id = ? AND email = ?", [c.id, String(email).trim().toLowerCase()]) : [[]];
+  if (!u || u.status !== "active" || !verifyPassword(String(current), u.password_hash)) return res.status(401).json({ error: "Incorrect college, email or current password." });
+  await pool.query("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?", [hashPassword(next), u.id]);
+  res.json({ ok: true });
+});
+
 module.exports = router;

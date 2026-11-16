@@ -37,8 +37,9 @@ function pdfText(buf) {
   for (const m of s.matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)) {
     let body;
     try { body = zlib.inflateSync(Buffer.from(m[1], "latin1")).toString("latin1"); } catch { continue; }
-    for (const t of body.matchAll(/\(((?:\\.|[^\\)])*)\)\s*Tj|\[((?:\\.|[^\]])*)\]\s*TJ/g)) {
-      const part = t[1] ?? [...(t[2] || "").matchAll(/\(((?:\\.|[^\\)])*)\)/g)].map((x) => x[1]).join("");
+    // Linear-time patterns only (nested quantifiers here can hang on large PDFs).
+    for (const t of body.matchAll(/\(([^()]{1,400})\)\s*Tj|\[([^\]]{1,4000})\]\s*TJ/g)) {
+      const part = t[1] ?? [...(t[2] || "").matchAll(/\(([^()]{0,400})\)/g)].map((x) => x[1]).join("");
       out += part.replace(/\\([()\\])/g, "$1") + " ";
     }
     if (out.length > 60000) break;
@@ -62,7 +63,9 @@ const clean = (t) => String(t || "").replace(/\s+/g, " ").trim();
 
 /** Top `n` informative sentences, in their original order, capped at `max` characters in total. */
 function summarize(text, n = 2, max = 420) {
-  const sentences = clean(text).split(/(?<=[.!?])\s+(?=[A-Z0-9"'(])/).map((s) => s.trim()).filter((s) => s.length >= 40 && s.length <= 320 && /[a-z]{3}/i.test(s));
+  // Only sentences that read like prose (rejects garbled PDF text, tables of numbers and symbols).
+  const prose = (x) => (x.match(/[A-Za-z ,.'\-]/g) || []).length / x.length >= 0.9 && (x.match(/\b[a-z]{3,}\b/gi) || []).length >= 6;
+  const sentences = clean(text).split(/(?<=[.!?])\s+(?=[A-Z0-9"'(])/).map((s) => s.trim()).filter((s) => s.length >= 40 && s.length <= 320 && prose(s));
   if (!sentences.length) return "";
   const freq = {};
   for (const w of clean(text).toLowerCase().match(/[a-z]{4,}/g) || []) if (!STOP.has(w)) freq[w] = (freq[w] || 0) + 1;

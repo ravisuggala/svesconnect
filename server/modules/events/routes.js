@@ -20,6 +20,7 @@ const MIME = {
   xls: "application/vnd.ms-excel", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   ppt: "application/vnd.ms-powerpoint", pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   txt: "text/plain", md: "text/plain", csv: "text/csv", zip: "application/zip",
+  sldprt: "application/octet-stream", sldasm: "application/octet-stream", slddrw: "application/octet-stream", sldalasm: "application/octet-stream", igs: "application/octet-stream", iges: "application/octet-stream", x_t: "application/octet-stream", catpart: "application/octet-stream", catproduct: "application/octet-stream", obj: "application/octet-stream",
   dwg: "application/octet-stream", dxf: "application/octet-stream", step: "application/octet-stream", stp: "application/octet-stream", stl: "application/octet-stream",
 };
 const emailOk = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -313,4 +314,4 @@ publicRouter.get("/event-files/:fileId", async (req, res) => {
   sendStored(res, f, req.query.download === "1");
 });
 
-module.exports = { collegeRouter, publicRouter, saveEventFile, cleanMeta, MIME };
+module.exports = { collegeRouter, publicRouter, saveEventFile, cleanMeta, MIME, STORAGE, fileDir, slug };

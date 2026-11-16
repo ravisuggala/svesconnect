@@ -42,3 +42,14 @@ The old BAJA prototype kept everything in the browser it was used in, so the dat
 2. Copy that JSON to the server (cPanel File Manager, e.g. into `/home/svesconnect/`).
 3. In the Node terminal (same steps as an update): `npm run import:baja -- /home/svesconnect/sves-baja-backup-<date>.json` (add `--publish` to make the events public at once).
 Every college > year > folder becomes an event, every file lands in its category folder with a summary. It is safe to run twice (nothing is duplicated). Files over the browser's limits or of blocked types are listed and skipped.
+
+## Loading the Vishnu Motorsports (BAJA, REEV ...) records
+The records in `reference/connectfiles` (2.6 GB: SVECW/VWU, VIT, BVRIT, BVRITH; 2022-2026) are far too big for git, so the data and the files travel separately.
+- **In git (already prepared):** `data/motorsport/manifest.json` = 21 events and one metadata record per file (title, folder, sub-folder = vehicle subsystem, tags, credit, date, summary, public/team-only). `data/motorsport/files-from.txt` (all files) and `files-public-from.txt` (public ones only) are the lists to copy. Regenerate after changing the rules with `npm run prepare:motorsport -- "reference/connectfiles"`.
+- **Rules used:** PDF, Word, PowerPoint and photos are PUBLIC (143 files, 0.15 GB); CAD/3D files (SolidWorks, STL, IGES, CATIA ...) and spreadsheets are TEAM-ONLY; accounts, indents, payment proofs and bills are never imported. Events with at least one public file are published.
+1. Copy the files (run on YOUR computer, in the project folder; use the server's SSH address). Public files only is quick: 
+   `rsync -av --files-from=data/motorsport/files-public-from.txt reference/connectfiles/ root@103.185.75.85:/home/svesconnect/motorsport/`
+   Everything incl. CAD (2.6 GB): use `files-from.txt` instead. Then on the server (WHM terminal, as root): `chown -R svesconnect:svesconnect /home/svesconnect/motorsport`.
+2. On the server as the app user (same shell as for updates): `git pull`, `npm run migrate`, then
+   `npm run import:motorsport -- --from /home/svesconnect/motorsport` (add `--only-public` if you copied only the public list). Safe to repeat.
+3. Restart the app. Check https://svesconnect.in/events. After checking, `/home/svesconnect/motorsport` can be deleted (the files now live in the app's `storage/` folder).

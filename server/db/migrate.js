@@ -52,8 +52,8 @@ async function upgradeEquipment() {
   // Colleges
   for (const [i, c] of COLLEGES.entries()) {
     await pool.query(
-      "INSERT INTO colleges (code, name, city, is_central, sort_order) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE name = VALUES(name), city = VALUES(city), is_central = VALUES(is_central), sort_order = VALUES(sort_order)",
-      [c.code, c.name, c.city, c.central ? 1 : 0, i]
+      "INSERT INTO colleges (code, name, city, address, is_central, sort_order) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE name = VALUES(name), city = VALUES(city), address = COALESCE(VALUES(address), address), is_central = VALUES(is_central), sort_order = VALUES(sort_order)",
+      [c.code, c.name, c.city, c.address || null, c.central ? 1 : 0, i]
     );
   }
   const [rows] = await pool.query("SELECT id, code, name FROM colleges");

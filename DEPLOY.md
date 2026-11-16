@@ -35,3 +35,10 @@ Files are stored on disk in `storage/` inside the app folder (or `STORAGE_DIR`),
 
 ## Search and the AI assistant on the server
 The semantic (embedding) search needs the optional `sharp` native binary, which often cannot be downloaded on shared/VPS hosts. That is fine: search automatically falls back to keyword ranking and `/api/health` reports `searchMode`. Add `GROK_API_KEY` later to get written answers from the assistant; until then it lists the closest records with links.
+
+## Bringing the old BAJA data into Events
+The old BAJA prototype kept everything in the browser it was used in, so the data has to be exported from there once:
+1. Open the old prototype in the SAME browser (and address) where the BAJA files were uploaded: on that computer run `cd svecw-main && npm start`, open http://localhost:3000, sign in as an admin and press **Export backup**. It downloads `sves-baja-backup-<date>.json` (files included).
+2. Copy that JSON to the server (cPanel File Manager, e.g. into `/home/svesconnect/`).
+3. In the Node terminal (same steps as an update): `npm run import:baja -- /home/svesconnect/sves-baja-backup-<date>.json` (add `--publish` to make the events public at once).
+Every college > year > folder becomes an event, every file lands in its category folder with a summary. It is safe to run twice (nothing is duplicated). Files over the browser's limits or of blocked types are listed and skipped.

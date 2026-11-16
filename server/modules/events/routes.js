@@ -201,6 +201,24 @@ function cleanMeta(b, type) {
     isPublic: b.isPublic === undefined ? def?.public !== false : !!b.isPublic,
   };
 }
+
+/** Writes one file into its folder on disk and records it with its metadata and machine summary. Shared by uploads and the BAJA importer. */
+async function saveEventFile(college, ev, { filename, buf, meta: m, uploadedBy }) {
+  const original = path.basename(String(filename)).slice(0, 200);
+  const ext = path.extname(original).slice(1).toLowerCase();
+  const title = m.title || original.replace(/\.[^.]+$/, "");
+  const dir = fileDir(college, ev, m.folder, m.subfolder);
+  fs.mkdirSync(path.join(STORAGE, dir), { recursive: true });
+  const stored = path.join(dir, `${crypto.randomBytes(6).toString("hex")}-${slug(path.basename(original, `.${ext}`))}.${ext}`);
+  fs.writeFileSync(path.join(STORAGE, stored), buf);
+  const body = extractText(buf, ext);
+  const text = clean(`${m.description || ""} ${body}`).slice(0, 20000);
+  const summary = summarize(body, 2) || summarize(m.description, 2) || clean(m.description).slice(0, 300) || null;
+  const [r] = await pool.query(
+    "INSERT INTO event_files (event_id, folder, subfolder, title, description, contributor, file_date, tags, is_public, original_name, stored_name, mime, size, summary, extracted, uploaded_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+    [ev.id, m.folder, m.subfolder, title, m.description, m.contributor, m.fileDate, m.tags, m.isPublic ? 1 : 0, original, stored, MIME[ext], buf.length, summary, text, uploadedBy]);
+  return r.insertId;
+}
 collegeRouter.post("/events/:id/files", needEvent(async (req, res, ev) => {
   if (!canManage(req.me, ev)) return res.status(403).json({ error: "Only the event coordinator can upload files." });
   const b = req.body || {};
@@ -211,20 +229,9 @@ collegeRouter.post("/events/:id/files", needEvent(async (req, res, ev) => {
   if (buf.length > MAX_FILE) return res.status(413).json({ error: "File is larger than 8 MB." });
   const [[{ c }]] = await pool.query("SELECT COUNT(*) AS c FROM event_files WHERE event_id = ?", [ev.id]);
   if (c >= 500) return res.status(400).json({ error: "This event has reached the 500 file limit." });
-  const original = path.basename(String(b.filename)).slice(0, 200);
-  const m = cleanMeta(b, findType(ev.type_key));
-  const title = m.title || original.replace(/\.[^.]+$/, "");
-  const dir = fileDir(req.college, ev, m.folder, m.subfolder);
-  fs.mkdirSync(path.join(STORAGE, dir), { recursive: true });
-  const stored = path.join(dir, `${crypto.randomBytes(6).toString("hex")}-${slug(path.basename(original, `.${ext}`))}.${ext}`);
-  fs.writeFileSync(path.join(STORAGE, stored), buf);
-  const text = clean(`${m.description || ""} ${extractText(buf, ext)}`).slice(0, 20000);
-  const summary = summarize(extractText(buf, ext), 2) || summarize(m.description, 2) || clean(m.description).slice(0, 300) || null;
-  const [r] = await pool.query(
-    "INSERT INTO event_files (event_id, folder, subfolder, title, description, contributor, file_date, tags, is_public, original_name, stored_name, mime, size, summary, extracted, uploaded_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-    [ev.id, m.folder, m.subfolder, title, m.description, m.contributor, m.fileDate, m.tags, m.isPublic ? 1 : 0, original, stored, MIME[ext], buf.length, summary, text, req.me.id]);
+  const id = await saveEventFile(req.college, ev, { filename: b.filename, buf, meta: cleanMeta(b, findType(ev.type_key)), uploadedBy: req.me.id });
   touchSearch();
-  const [[row]] = await pool.query(`SELECT ${FILE_COLS} FROM event_files WHERE id = ?`, [r.insertId]);
+  const [[row]] = await pool.query(`SELECT ${FILE_COLS} FROM event_files WHERE id = ?`, [id]);
   res.status(201).json({ file: fileRow(row) });
 }));
 
@@ -306,4 +313,4 @@ publicRouter.get("/event-files/:fileId", async (req, res) => {
   sendStored(res, f, req.query.download === "1");
 });
 
-module.exports = { collegeRouter, publicRouter };
+module.exports = { collegeRouter, publicRouter, saveEventFile, cleanMeta, MIME };

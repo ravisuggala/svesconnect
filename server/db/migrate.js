@@ -5,7 +5,7 @@ require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env"), quiet
 const mysql = require("mysql2/promise");
 const pool = require("./pool");
 const { hashPassword } = require("../core/security");
-const { COLLEGES, defaultPassword, principalEmail } = require("../core/org");
+const { COLLEGES, defaultPassword } = require("../core/org");
 
 const has = async (sql, params) => (await pool.query(sql, params))[0].length > 0;
 const columnExists = (t, c) => has("SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?", [t, c]);
@@ -56,14 +56,19 @@ async function upgradeUsers() {
     }
   }
 
-  // One default principal account per college.
-  let made = 0;
+  // One default principal account per college, using the official principal email. Existing principals get their email corrected.
+  let made = 0, fixed = 0;
   for (const c of COLLEGES.filter((x) => !x.central)) {
-    const email = principalEmail(c.code);
-    if (await has("SELECT 1 FROM users WHERE college_id = ? AND role = 'principal'", [byCode[c.code].id])) continue;
-    await pool.query("INSERT INTO users (college_id, name, email, password_hash, role, must_change_password) VALUES (?,?,?,?, 'principal', 1)", [byCode[c.code].id, `Principal, ${c.code}`, email, hashPassword(defaultPassword())]);
-    made++;
+    const cid = byCode[c.code].id;
+    const [[p]] = await pool.query("SELECT id, email FROM users WHERE college_id = ? AND role = 'principal' LIMIT 1", [cid]);
+    if (!p) {
+      await pool.query("INSERT INTO users (college_id, name, email, password_hash, role, must_change_password) VALUES (?,?,?,?, 'principal', 1)", [cid, `Principal, ${c.code}`, c.principal, hashPassword(defaultPassword())]);
+      made++;
+    } else if (p.email !== c.principal && !(await has("SELECT 1 FROM users WHERE college_id = ? AND email = ? AND id <> ?", [cid, c.principal, p.id]))) {
+      await pool.query("UPDATE users SET email = ? WHERE id = ?", [c.principal, p.id]);
+      fixed++;
+    }
   }
-  console.log(`Default principal accounts created: ${made} (email pattern principal.<code>@svesconnect.in)`);
+  console.log(`Principal accounts: ${made} created, ${fixed} email(s) corrected.`);
   await pool.end();
 })().catch((e) => { console.error("Migration failed:", e.message); process.exit(1); });

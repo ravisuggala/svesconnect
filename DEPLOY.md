@@ -26,3 +26,6 @@ Create a database and a user, add the user to the database with ALL PRIVILEGES. 
 ## Notes
 - The AI assistant downloads a small embedding model on first use and needs about 1 GB of RAM; CloudLinux limits may need raising in WHM (LVE Manager).
 - Uploaded files for later modules will live outside `public_html` under `~/svesconnect/storage`.
+
+## Updating an existing deployment
+After `git pull`, always run `npm install --include=dev --ignore-scripts && npm run build && npm run migrate`, then Restart the app. `migrate` is safe to repeat: it upgrades tables, seeds colleges and creates any missing principal accounts.

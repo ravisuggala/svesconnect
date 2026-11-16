@@ -1,14 +1,31 @@
 -- SVES Connect: MySQL / MariaDB schema (utf8mb4). Applied by `npm run migrate` (idempotent).
--- Each module owns its tables; add new module tables in new files under server/modules/<module>/ when that module is built.
+-- migrate.js also upgrades older databases (adds new users columns / indexes) and seeds colleges + principal accounts.
 
+CREATE TABLE IF NOT EXISTS colleges (
+  id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  code       VARCHAR(12) NOT NULL UNIQUE,
+  name       VARCHAR(190) NOT NULL,
+  city       VARCHAR(80),
+  is_central TINYINT(1) NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- One login table for every type of user. Hierarchy: admin > principal > hod > lab_incharge (lab coordinator).
 CREATE TABLE IF NOT EXISTS users (
-  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  name          VARCHAR(120) NOT NULL,
-  email         VARCHAR(190) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  role          ENUM('student','faculty','external','lab_incharge','hod','principal','admin') NOT NULL DEFAULT 'student',
-  status        ENUM('active','disabled') NOT NULL DEFAULT 'active',
-  created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  college_id           INT UNSIGNED NULL,
+  name                 VARCHAR(120) NOT NULL,
+  email                VARCHAR(190) NOT NULL,
+  password_hash        VARCHAR(255) NOT NULL,
+  role                 ENUM('student','faculty','external','lab_incharge','hod','principal','admin') NOT NULL DEFAULT 'student',
+  department           VARCHAR(120) NULL,
+  lab_name             VARCHAR(160) NULL,
+  created_by           INT UNSIGNED NULL,
+  must_change_password TINYINT(1) NOT NULL DEFAULT 1,
+  status               ENUM('active','disabled') NOT NULL DEFAULT 'active',
+  created_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_user_college_email (college_id, email),
+  KEY idx_users_scope (college_id, role, department)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Equipment (Module 1 will extend this with the full registration template fields).

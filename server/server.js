@@ -17,7 +17,11 @@ app.use(express.json());
 app.use(optionalAuth);
 
 // ---- Module APIs: each module mounts under /api/<module> ----
+const org = require("./modules/org/routes");
 app.use("/api/auth", require("./modules/auth/routes"));
+app.use("/api/colleges", org.publicRouter);
+app.use("/api/admin", org.adminRouter);
+app.use("/api/c/:college", org.collegeRouter);
 app.use("/api/chatbot", chatbot.router);
 
 app.get("/api/health", async (req, res) => {

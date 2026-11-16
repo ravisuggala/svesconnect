@@ -19,6 +19,8 @@ Single app: React 19 + Vite (`src/`) and Express 5 + MySQL via `mysql2` (`server
 - Logo: the ORIGINAL Vishnu logo `public/logo.jpg` (from reference/svecw_logo.jpg; never redraw or alter it; favicon `public/favicon.png`). Site name: "SVES Connect", organisation "Sri Vishnu Educational Society".
 
 ## Status
-- Done: design system, shell/layouts, home, login/register (any email), MySQL auth, AI assistant (`/assistant`).
+- Done: design system, shell/layouts, home, MySQL auth, AI assistant (`/assistant`), college account hierarchy.
+- Accounts: one login table; login asks College + email + password. Hierarchy admin > principal (one default account per college: principal.<code>@svesconnect.in) > HOD (email, department) > lab coordinator (role `lab_incharge`; email, department, lab name). Each level creates/resets/disables only the level below, inside its own college (HOD: own department). Default password `svesconnect@123` (env DEFAULT_PASSWORD) and `must_change_password` forces a change at first login. No public sign-up.
+- Per-college routes: UI `/c/<code>/hods|labs|lab|principal`, API `/api/c/<code>/users`; one implementation (`server/modules/org`, `src/modules/org`) reused by every college. Colleges are seeded by `npm run migrate` from `server/core/org.js` (add a college there, re-run migrate).
 - `src/pages/Documents.jsx` is the legacy BAJA prototype (browser storage, own login, old styling) mounted at `/events`; to be rebuilt as the Events module.
 - Next: Lab Equipment (Module 1), Search (Module 2), Events, Projects/R&D, Dashboards.

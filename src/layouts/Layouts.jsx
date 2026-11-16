@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { Link, Outlet } from 'react-router-dom'
-import { Bot, Home, LayoutGrid, LogIn, LogOut } from 'lucide-react'
+import { Bot, FlaskConical, Home, KeyRound, LayoutGrid, LogIn, LogOut, Users } from 'lucide-react'
 import { Button, Navbar, Sidebar } from '../ui'
 import { useAuth } from '../core/auth'
 import { MODULES } from '../core/modules'
+import { ROLE_LABEL } from '../core/roles'
 
 function UserArea() {
   const { user, logout } = useAuth()
   return user ? (
     <span className="row" style={{ gap: 8, marginLeft: 8 }}>
-      <span className="muted" style={{ fontSize: 13 }}>{user.name}</span>
+      <span className="muted" style={{ fontSize: 13 }}>{user.name} · {ROLE_LABEL[user.role] || user.role}{user.role !== 'admin' && user.college ? ` · ${user.college.code}` : ''}</span>
       <Button variant="ghost" size="sm" onClick={logout}><LogOut size={14} /> Sign out</Button>
     </span>
   ) : (
@@ -37,7 +38,14 @@ export function PublicLayout() {
 export function PortalLayout() {
   const [open, setOpen] = useState(false)
   const { user } = useAuth()
+  const c = user?.college?.code?.toLowerCase()
+  const mine = !user ? [] : {
+    principal: [{ to: `/c/${c}/hods`, label: 'Heads of Department', icon: Users }],
+    hod: [{ to: `/c/${c}/labs`, label: 'Lab Coordinators', icon: Users }],
+    lab_incharge: [{ to: `/c/${c}/lab`, label: 'My lab', icon: FlaskConical }],
+  }[user.role] || []
   const groups = [
+    ...(mine.length ? [{ title: user.college.code, items: [...mine, { to: '/change-password', label: 'Change password', icon: KeyRound }] }] : []),
     { title: 'Portal', items: [{ to: '/portal', label: 'Overview', icon: LayoutGrid }, { to: '/', label: 'Public home', icon: Home }] },
     { title: 'Modules', items: [...MODULES.filter((m) => !m.roles || m.roles.includes(user?.role)).map((m) => ({ to: m.path, label: m.label, icon: m.icon })), { to: '/assistant', label: 'AI Assistant', icon: Bot }] },
   ]

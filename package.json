@@ -12,6 +12,7 @@
     "start": "NODE_ENV=production node server/server.js",
     "lint": "eslint .",
     "migrate": "node server/db/migrate.js",
+    "deploy": "bash scripts/deploy.sh",
     "import:baja": "node server/db/importBaja.js",
     "prepare:motorsport": "node server/db/motorsport/prepare.js",
     "import:motorsport": "node server/db/motorsport/import.js",

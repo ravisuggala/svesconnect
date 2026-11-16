@@ -21,6 +21,6 @@ export function fileKindVisible(kind, data, highValueLakhs = 1.5) {
 }
 
 export const STATUS = {
-  draft: { label: 'Draft', tone: '' }, submitted: { label: 'Awaiting HOD', tone: 'warning' }, verified: { label: 'Awaiting Principal', tone: 'primary' },
+  draft: { label: 'Draft', tone: '' }, submitted: { label: 'Awaiting HOD', tone: 'warning' }, verified: { label: 'Published', tone: 'success' },
   approved: { label: 'Published', tone: 'success' }, rejected: { label: 'Needs changes', tone: 'error' },
 }

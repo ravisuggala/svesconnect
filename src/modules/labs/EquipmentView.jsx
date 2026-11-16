@@ -6,7 +6,7 @@ import { api, openFile } from '../../core/api'
 import EquipmentSections from './EquipmentSections'
 import { STATUS } from './spec'
 
-const FLOW = [['draft', 'Filled by coordinator'], ['submitted', 'Verified by HOD'], ['verified', 'Approved by Principal'], ['approved', 'Published']]
+const FLOW = [['draft', 'Filled by coordinator'], ['submitted', 'Reviewed by HOD'], ['approved', 'Approved & published']]
 
 /** Internal view of one equipment record with the approval actions for the person whose turn it is. */
 export default function EquipmentView() {
@@ -22,7 +22,7 @@ export default function EquipmentView() {
   if (error) return <Card><p role="alert" style={{ color: 'var(--c-error)' }}>{error}</p></Card>
   if (!r) return <div style={{ padding: 48, textAlign: 'center' }}><Loader label="Loading…" /></div>
   const { equipment: e, spec, files, can } = r
-  const order = ['draft', 'submitted', 'verified', 'approved']
+  const order = ['draft', 'submitted', 'approved']
   const at = e.status === 'rejected' ? 0 : order.indexOf(e.status)
 
   const decide = async (decision, note) => {
@@ -42,9 +42,9 @@ export default function EquipmentView() {
       {e.status === 'rejected' && <Card style={{ borderColor: 'var(--c-error)', background: 'var(--c-error-bg)', marginBottom: 'var(--s-4)' }}><b>Sent back for changes:</b> {e.reviewNote}</Card>}
       {can.review && (
         <Card style={{ borderColor: 'var(--c-primary)', marginBottom: 'var(--s-4)' }}>
-          <b>{can.review === 'verify' ? 'Your turn: verify this record as HOD' : 'Your turn: approve this record as Principal'}</b>
-          <p className="muted">{can.review === 'approve' ? 'Approving publishes it on the public lab page.' : 'After verification it goes to the Principal for approval.'}</p>
-          <div className="row"><Button onClick={() => decide('approve')}><Check size={16} /> {can.review === 'verify' ? 'Verify' : 'Approve & publish'}</Button><Button variant="ghost" onClick={() => setReject({ note: '' })}><X size={16} /> Send back</Button></div>
+          <b>Your turn: review this record as HOD</b>
+          <p className="muted">Approving is the final approval and publishes it on the public lab page. Or send it back with a note.</p>
+          <div className="row"><Button onClick={() => decide('approve')}><Check size={16} /> Approve & publish</Button><Button variant="ghost" onClick={() => setReject({ note: '' })}><X size={16} /> Send back</Button></div>
         </Card>)}
       <EquipmentSections sections={spec.sections} data={e.data} highValueLakhs={spec.highValueLakhs} />
       {files.length > 0 && (

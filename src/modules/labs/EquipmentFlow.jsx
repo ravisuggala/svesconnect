@@ -42,13 +42,8 @@ export default function EquipmentFlow() {
   const at = cursor ?? questions[0]?.key // first question until the user moves on
   const idx = at === 'review' ? questions.length : Math.max(0, questions.findIndex((q) => q.key === at))
   const q = questions[idx]
-  const missing = useMemo(() => {
-    if (!spec) return []
-    const m = []
-    if (empty(data.name)) m.push({ key: 'name', label: 'Equipment name' })
-    for (const s of spec.sections) for (const f of s.fields) if (f.required && visible(f, data, hv) && empty(data[f.key])) m.push({ key: f.key, label: f.label })
-    return m
-  }, [spec, data, hv])
+  const fileQs = questions.filter((x) => x.kind).length
+  const answered = questions.filter((x) => x.field && !empty(data[x.field.key])).length
 
   const persist = useCallback(async () => {
     const changed = {}
@@ -64,7 +59,7 @@ export default function EquipmentFlow() {
   const exit = async () => { setBusy(true); if (await persist()) nav(`/c/${college}/lab`); setBusy(false) }
   const submit = async () => {
     setBusy(true)
-    try { if (!(await persist())) return; await api(`/c/${college}/equipment/${id}/submit`, { method: 'POST' }); toast('Submitted to your HOD for verification'); nav(`/c/${college}/equipment/${id}`) }
+    try { if (!(await persist())) return; await api(`/c/${college}/equipment/${id}/submit`, { method: 'POST' }); toast('Submitted to your HOD'); nav(`/c/${college}/equipment/${id}`) }
     catch (e) { toast(e.message, 'error') } finally { setBusy(false) }
   }
 
@@ -87,7 +82,6 @@ export default function EquipmentFlow() {
   const curSection = at === 'review' ? null : q?.section.key
   const jump = (sKey) => { const t = questions.find((x) => x.section.key === sKey); if (t) go(t.key) }
   const pct = Math.round(((at === 'review' ? questions.length : idx) / Math.max(1, questions.length)) * 100)
-  const required = q?.field?.required
 
   return (
     <div className="flow fade-up">
@@ -103,12 +97,9 @@ export default function EquipmentFlow() {
           <>
             <span className="sec">Final step</span>
             <h2>Review and submit</h2>
-            {missing.length ? (
-              <><p>Please answer these required questions before submitting:</p>
-                <div className="opts" style={{ marginBottom: 'var(--s-4)' }}>{missing.map((m) => <button key={m.key} className="opt" onClick={() => go(m.key)}>{m.label}</button>)}</div></>
-            ) : <p>All required details are filled. Your HOD will verify the record, then the Principal approves it. Only then does it appear to the public.</p>}
+            <p>You answered <b>{answered}</b> of {questions.length - fileQs} questions. Anything you leave blank is simply not shown. While the record is a draft you can come back and add more. After you submit, your HOD reviews it and gives the final approval, and only then does it appear on the public lab page.</p>
             <div className="flow-nav"><Button variant="ghost" onClick={back} disabled={busy}><ArrowLeft size={16} /> Back</Button>
-              <Button onClick={submit} disabled={busy || missing.length > 0}><Check size={16} /> Submit for verification</Button></div>
+              <Button onClick={submit} disabled={busy}><Check size={16} /> Submit to HOD</Button></div>
           </>
         ) : q && (
           <>
@@ -126,8 +117,8 @@ export default function EquipmentFlow() {
             ) : <Question field={q.field} value={data[q.field.key]} onChange={(v) => set(q.field.key, v)} />}
             <div className="flow-nav">
               <Button variant="ghost" onClick={back} disabled={busy || idx === 0}><ArrowLeft size={16} /> Back</Button>
-              {!required && !q.kind && <Button variant="ghost" onClick={next} disabled={busy}>Skip</Button>}
-              <Button onClick={next} disabled={busy || (required && empty(data[q.field.key]))}>{idx + 1 >= questions.length ? 'Finish' : 'Next'} <ArrowRight size={16} /></Button>
+              {!q.kind && <Button variant="ghost" onClick={next} disabled={busy}>Skip</Button>}
+              <Button onClick={next} disabled={busy}>{idx + 1 >= questions.length ? 'Finish' : 'Next'} <ArrowRight size={16} /></Button>
             </div>
           </>
         )}
@@ -138,7 +129,7 @@ export default function EquipmentFlow() {
 
 function Question({ field, value, onChange }) {
   const v = value ?? ''
-  const label = <>{field.label}{field.unit && field.type !== 'text' ? <small className="muted"> ({field.unit})</small> : field.unit ? <small className="muted"> ({field.unit})</small> : null}{field.required ? <span style={{ color: 'var(--c-error)' }}> *</span> : null}</>
+  const label = <>{field.label}{field.unit && field.type !== 'text' ? <small className="muted"> ({field.unit})</small> : field.unit ? <small className="muted"> ({field.unit})</small> : null}</>
   let input
   switch (field.type) {
     case 'textarea': input = <Field>{(a) => <textarea className="textarea" rows={4} autoFocus value={v} onChange={(e) => onChange(e.target.value)} {...a} />}</Field>; break

@@ -57,7 +57,7 @@ export default function LabHome() {
         <Button onClick={() => { setErrors({}); setAdd({ templateKey: '', name: '' }) }} disabled={!lab}><Plus size={16} /> Add equipment</Button></div>
       {lab && <p className="muted" style={{ margin: 'var(--s-3) 0' }}>{lab.description || 'Add a short description of your lab in “Lab profile”.'}{(lab.building || lab.room) && ` · ${[lab.building, lab.floor && `Floor ${lab.floor}`, lab.room && `Room ${lab.room}`].filter(Boolean).join(', ')}`}</p>}
       <Card style={{ margin: 'var(--s-4) 0', background: 'var(--c-primary-soft)', borderColor: 'transparent' }}>
-        <b>How publishing works:</b> you fill the form → your HOD verifies → your Principal approves → the equipment appears on the public lab page. Only this lab&apos;s equipment is shown on this lab&apos;s page.
+        <b>How publishing works:</b> fill in whatever details you have (every question is optional) → submit to your HOD → after the HOD&apos;s approval the equipment appears on your public lab page. Only this lab&apos;s equipment is shown on this lab&apos;s page.
       </Card>
       <Table columns={columns} rows={equipment} loading={loading} empty={<EmptyState title="No equipment yet" icon={FlaskConical}>Use “Add equipment”. The form asks one question at a time and adapts to the type of equipment.</EmptyState>} />
 

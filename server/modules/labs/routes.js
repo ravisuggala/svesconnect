@@ -72,10 +72,12 @@ collegeRouter.get("/labs", async (req, res) => {
   if (!sc) return res.json({ labs: [] });
   const [rows] = await pool.query(
     `SELECT l.id, l.department, l.name, l.description, l.building, l.floor, l.room, l.accessibility,
+            u.name AS coordinator, u.email AS coordinatorEmail,
             COUNT(e.id) AS total, SUM(e.status = 'draft') AS draft, SUM(e.status = 'submitted') AS submitted,
-            SUM(e.status = 'verified') AS verified, SUM(e.status = 'approved') AS approved, SUM(e.status = 'rejected') AS rejected
-       FROM labs l LEFT JOIN equipment e ON e.lab_id = l.id WHERE ${sc.where} GROUP BY l.id ORDER BY l.department, l.name`, sc.params);
-  res.json({ labs: rows.map((r) => ({ ...r, total: n(r.total), draft: n(r.draft), submitted: n(r.submitted), verified: n(r.verified), approved: n(r.approved), rejected: n(r.rejected) })) });
+            SUM(e.status = 'approved') AS approved, SUM(e.status = 'rejected') AS rejected
+       FROM labs l LEFT JOIN users u ON u.id = l.incharge_user_id LEFT JOIN equipment e ON e.lab_id = l.id
+      WHERE ${sc.where} GROUP BY l.id, u.name, u.email ORDER BY l.department, l.name`, sc.params);
+  res.json({ labs: rows.map((r) => ({ ...r, total: n(r.total), draft: n(r.draft), submitted: n(r.submitted), approved: n(r.approved), rejected: n(r.rejected) })) });
 });
 
 collegeRouter.get("/labs/:id", async (req, res) => {
@@ -146,11 +148,9 @@ collegeRouter.post("/equipment/:id/submit", async (req, res) => {
   res.json({ ok: true });
 });
 
-// The next review step this user may perform: HOD verifies (submitted), Principal approves (verified).
+// Coordinator submits; the HOD of that department gives the final approval (publishes) or sends it back. The Principal only views.
 function reviewAction(me, eq) {
-  if (me.role === "hod" && eq.status === "submitted" && eq.lab_department === me.department) return "verify";
-  if (me.role === "principal" && eq.status === "verified") return "approve";
-  return null;
+  return me.role === "hod" && eq.status === "submitted" && eq.lab_department === me.department ? "approve" : null;
 }
 collegeRouter.post("/equipment/:id/review", async (req, res) => {
   const eq = await loadEquipment(req, req.params.id);
@@ -163,8 +163,7 @@ collegeRouter.post("/equipment/:id/review", async (req, res) => {
     if (nt.length < 3) return res.status(400).json({ error: "Please tell the coordinator what to fix.", fields: { note: "Please explain what to fix." } });
     await pool.query("UPDATE equipment SET status = 'rejected', review_note = ? WHERE id = ?", [nt.slice(0, 2000), eq.id]);
   } else if (decision === "approve") {
-    if (step === "verify") await pool.query("UPDATE equipment SET status = 'verified', verified_by = ?, verified_at = NOW(), review_note = NULL WHERE id = ?", [req.me.id, eq.id]);
-    else await pool.query("UPDATE equipment SET status = 'approved', approved_by = ?, approved_at = NOW(), review_note = NULL WHERE id = ?", [req.me.id, eq.id]);
+    await pool.query("UPDATE equipment SET status = 'approved', approved_by = ?, approved_at = NOW(), review_note = NULL WHERE id = ?", [req.me.id, eq.id]);
   } else return res.status(400).json({ error: "Unknown decision." });
   res.json({ ok: true });
 });

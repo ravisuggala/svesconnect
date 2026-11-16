@@ -12,7 +12,7 @@ const pillars = [
 ]
 const steps = [
   { n: '01', t: 'Register', d: 'Faculty and lab in-charges record equipment, labs and facilities using guided, department-specific forms.' },
-  { n: '02', t: 'Verify & approve', d: 'HODs verify and Principals approve, so every entry is accurate, traceable and audit-ready.' },
+  { n: '02', t: 'Review & approve', d: 'The HOD reviews and approves every entry, so what is published is accurate, traceable and audit-ready.' },
   { n: '03', t: 'Discover', d: 'Anyone can search by name, category, location or status, or simply ask the AI assistant.' },
   { n: '04', t: 'Collaborate', d: 'Enquiries, consultancy and shared use of facilities connect industry, faculty and students.' },
 ]
@@ -88,7 +88,7 @@ export default function Home() {
             <h3>Designed for trust</h3>
             <ul className="ticks">
               <li>Role-based access for Admin, HOD, Lab In-charge, Principal, Faculty and Students</li>
-              <li>Validation, approvals and audit trails on every record</li>
+              <li>Every detail optional, and HOD approval before anything is published</li>
               <li>QR codes for fast physical asset identification <QrCode size={14} /></li>
               <li>Supports accreditation evidence and faster reporting</li>
             </ul>

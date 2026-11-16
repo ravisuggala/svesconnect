@@ -82,6 +82,8 @@ async function upgradeEquipment() {
       fixed++;
     }
   }
+  const [mv] = await pool.query("UPDATE equipment SET status = 'approved', approved_by = verified_by, approved_at = verified_at WHERE status = 'verified'");
+  if (mv.affectedRows) console.log(`Records that were awaiting Principal approval are now published: ${mv.affectedRows}`);
   console.log(`Principal accounts: ${made} created, ${fixed} email(s) corrected.`);
 
   // Every lab coordinator owns a lab record (created when the HOD adds the coordinator; backfilled here for older accounts).

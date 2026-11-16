@@ -53,7 +53,7 @@ export default function LabHome() {
   return (
     <div className="fade-up">
       <div className="row"><div><Badge tone="primary">{user.college.name} · {user.department}</Badge><h2 style={{ margin: 'var(--s-2) 0 0' }}>{lab?.name || user.labName}</h2></div><span className="spacer" />
-        <Button variant="ghost" onClick={() => setProfile({ description: lab.description || '', building: lab.building || '', floor: lab.floor || '', room: lab.room || '', accessibility: lab.accessibility || '' })} disabled={!lab}><Pencil size={14} /> Lab profile</Button>
+        <Button variant="ghost" onClick={() => setProfile({ description: lab.description || '', building: lab.building || '', floor: lab.floor || '', room: lab.room || '', accessibility: lab.accessibility || '', contact_name: lab.contact_name || '', contact_email: lab.contact_email || '', contact_phone: lab.contact_phone || '' })} disabled={!lab}><Pencil size={14} /> Lab profile</Button>
         <Button onClick={() => { setErrors({}); setAdd({ templateKey: '', name: '' }) }} disabled={!lab}><Plus size={16} /> Add equipment</Button></div>
       {lab && <p className="muted" style={{ margin: 'var(--s-3) 0' }}>{lab.description || 'Add a short description of your lab in “Lab profile”.'}{(lab.building || lab.room) && ` · ${[lab.building, lab.floor && `Floor ${lab.floor}`, lab.room && `Room ${lab.room}`].filter(Boolean).join(', ')}`}</p>}
       <Card style={{ margin: 'var(--s-4) 0', background: 'var(--c-primary-soft)', borderColor: 'transparent' }}>
@@ -78,6 +78,9 @@ export default function LabHome() {
           <Input label="Building" value={profile.building} onChange={(e) => setProfile({ ...profile, building: e.target.value })} />
           <div className="grid cols-2"><Input label="Floor" value={profile.floor} onChange={(e) => setProfile({ ...profile, floor: e.target.value })} /><Input label="Room" value={profile.room} onChange={(e) => setProfile({ ...profile, room: e.target.value })} /></div>
           <Select label="Accessibility" value={profile.accessibility} onChange={(e) => setProfile({ ...profile, accessibility: e.target.value })} options={['', '24x7', 'Restricted hours', 'Prior permission']} />
+          <p className="muted" style={{ margin: 'var(--s-3) 0 0' }}>Contact shown publicly on your lab page (leave blank to use your login name and email).</p>
+          <Input label="Coordinator name" value={profile.contact_name} onChange={(e) => setProfile({ ...profile, contact_name: e.target.value })} />
+          <div className="grid cols-2"><Input label="Email" type="email" value={profile.contact_email} onChange={(e) => setProfile({ ...profile, contact_email: e.target.value })} /><Input label="Mobile" type="tel" value={profile.contact_phone} onChange={(e) => setProfile({ ...profile, contact_phone: e.target.value })} /></div>
           <div className="row" style={{ justifyContent: 'flex-end' }}><Button type="button" variant="ghost" onClick={() => setProfile(null)}>Cancel</Button><Button type="submit">Save</Button></div>
         </form>}
       </Modal>

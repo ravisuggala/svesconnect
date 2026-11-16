@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS colleges (
   code       VARCHAR(12) NOT NULL UNIQUE,
   name       VARCHAR(190) NOT NULL,
   city       VARCHAR(80),
+  address    VARCHAR(300),
   is_central TINYINT(1) NOT NULL DEFAULT 0,
   sort_order INT NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -40,6 +41,9 @@ CREATE TABLE IF NOT EXISTS labs (
   floor            VARCHAR(60),
   room             VARCHAR(60),
   accessibility    VARCHAR(60),
+  contact_name     VARCHAR(160),
+  contact_email    VARCHAR(190),
+  contact_phone    VARCHAR(40),
   incharge_user_id INT UNSIGNED NULL,
   created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_lab (college_id, department, name),

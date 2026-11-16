@@ -65,6 +65,13 @@ export function ExploreLab() {
         <>
           <Badge tone="primary">{data.lab.department}</Badge><h1 style={{ fontSize: '2rem', marginTop: 'var(--s-2)' }}>{data.lab.name}</h1>
           <p className="muted" style={{ maxWidth: '70ch' }}>{data.lab.description}{[data.lab.building, data.lab.floor && `Floor ${data.lab.floor}`, data.lab.room && `Room ${data.lab.room}`].filter(Boolean).length ? ` · ${[data.lab.building, data.lab.floor && `Floor ${data.lab.floor}`, data.lab.room && `Room ${data.lab.room}`].filter(Boolean).join(', ')}` : ''}{data.lab.accessibility ? ` · Access: ${data.lab.accessibility}` : ''}</p>
+          <Card style={{ marginTop: 'var(--s-4)', maxWidth: '60ch' }}>
+            <h3 style={{ fontSize: '1rem' }}>Lab coordinator</h3>
+            <p style={{ margin: 'var(--s-2) 0 0' }}><b>{data.lab.coordinatorName || '—'}</b></p>
+            {data.lab.coordinatorEmail && <p className="muted" style={{ margin: 0 }}>Email: <a href={`mailto:${data.lab.coordinatorEmail}`}>{data.lab.coordinatorEmail}</a></p>}
+            {data.lab.coordinatorPhone && <p className="muted" style={{ margin: 0 }}>Mobile: <a href={`tel:${data.lab.coordinatorPhone}`}>{data.lab.coordinatorPhone}</a></p>}
+            <p className="muted" style={{ margin: 0 }}>{data.lab.department} · {data.lab.collegeAddress}</p>
+          </Card>
           <div className="grid cols-3" style={{ marginTop: 'var(--s-5)' }}>{data.equipment.map((e) => (
             <Card hover key={e.id}>
               {e.photoId ? <img className="thumb" src={`/api/public/files/${e.photoId}`} alt={e.name} loading="lazy" /> : <div className="thumb thumb-empty"><FlaskConical size={32} /></div>}

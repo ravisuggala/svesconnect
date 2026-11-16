@@ -120,7 +120,7 @@ collegeRouter.patch("/labs/:id", async (req, res) => {
   if (!lab || !(req.me.role === "lab_incharge" && req.me.lab_id === lab.id)) return res.status(403).json({ error: "Only the lab coordinator can edit the lab profile." });
   const b = req.body || {};
   const t = (v, m) => String(v ?? "").trim().slice(0, m);
-  await pool.query("UPDATE labs SET description = ?, building = ?, floor = ?, room = ?, accessibility = ? WHERE id = ?", [t(b.description, 3000), t(b.building, 120), t(b.floor, 60), t(b.room, 60), t(b.accessibility, 60), lab.id]);
+  await pool.query("UPDATE labs SET description = ?, building = ?, floor = ?, room = ?, accessibility = ?, contact_name = ?, contact_email = ?, contact_phone = ? WHERE id = ?", [t(b.description, 3000), t(b.building, 120), t(b.floor, 60), t(b.room, 60), t(b.accessibility, 60), t(b.contact_name, 160), t(b.contact_email, 190), t(b.contact_phone, 40), lab.id]);
   searchIndex().touch();
   res.json({ ok: true });
 });
@@ -314,7 +314,10 @@ publicRouter.get("/colleges/:code/departments/:dept", async (req, res) => {
 
 publicRouter.get("/labs/:id", async (req, res) => {
   const [[lab]] = await pool.query(
-    "SELECT l.id, l.name, l.department, l.description, l.building, l.floor, l.room, l.accessibility, c.code AS collegeCode, c.name AS collegeName FROM labs l JOIN colleges c ON c.id = l.college_id WHERE l.id = ?", [Number(req.params.id)]);
+    `SELECT l.id, l.name, l.department, l.description, l.building, l.floor, l.room, l.accessibility, c.code AS collegeCode, c.name AS collegeName,
+            COALESCE(NULLIF(c.address, ''), CONCAT_WS(', ', c.name, c.city)) AS collegeAddress,
+            COALESCE(NULLIF(l.contact_name, ''), u.name) AS coordinatorName, COALESCE(NULLIF(l.contact_email, ''), u.email) AS coordinatorEmail, l.contact_phone AS coordinatorPhone
+       FROM labs l JOIN colleges c ON c.id = l.college_id LEFT JOIN users u ON u.id = l.incharge_user_id WHERE l.id = ?`, [Number(req.params.id)]);
   if (!lab) return res.status(404).json({ error: "Lab not found." });
   const [rows] = await pool.query("SELECT id, name, template_key, data FROM equipment WHERE lab_id = ? AND status = 'approved' ORDER BY name", [lab.id]);
   if (!rows.length) return res.status(404).json({ error: "This lab has no published equipment yet." });

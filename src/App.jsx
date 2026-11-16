@@ -9,6 +9,7 @@ import Portal from './pages/Portal'
 import Chatbot from './pages/Chatbot'
 import Documents from './pages/Documents'
 import ModulePlaceholder from './modules/ModulePlaceholder'
+import SearchPage from './modules/search/SearchPage'
 import ChangePassword from './pages/ChangePassword'
 import Accounts from './modules/org/Accounts'
 import LabHome from './modules/labs/LabHome'
@@ -16,7 +17,7 @@ import EquipmentFlow from './modules/labs/EquipmentFlow'
 import EquipmentView from './modules/labs/EquipmentView'
 import LabsOverview from './modules/labs/LabsOverview'
 import LabDetail from './modules/labs/LabDetail'
-import { ExploreCollege, ExploreColleges, ExploreEquipment, ExploreLab } from './modules/labs/Explore'
+import { ExploreCollege, ExploreColleges, ExploreDepartment, ExploreEquipment, ExploreLab } from './modules/labs/Explore'
 import AdminColleges from './modules/org/AdminColleges'
 
 function ScrollToHash() {
@@ -29,7 +30,7 @@ function ScrollToHash() {
 }
 
 // Modules with a real implementation; everything else shows its planned scope.
-const IMPLEMENTED = { admin: <AdminColleges />, events: <Documents />, search: <ModulePlaceholder module={MODULES.find((m) => m.key === 'search')} /> }
+const IMPLEMENTED = { admin: <AdminColleges />, events: <Documents />, search: <SearchPage /> }
 
 export default function App() {
   return (
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/explore" element={<ExploreColleges />} />
           <Route path="/explore/c/:code" element={<ExploreCollege />} />
+          <Route path="/explore/c/:code/d/:dept" element={<ExploreDepartment />} />
           <Route path="/explore/lab/:id" element={<ExploreLab />} />
           <Route path="/explore/equipment/:id" element={<ExploreEquipment />} />
         </Route>

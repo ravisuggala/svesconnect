@@ -9,7 +9,7 @@ export const MODULES = [
   { key: 'equipment', path: '/equipment', label: 'Lab Equipment', icon: FlaskConical, phase: 'Phase 2', status: 'partial', needsLogin: true,
     summary: 'Register and manage laboratory equipment, with department templates, approvals, documents and QR codes.',
     features: ['Equipment registration forms with department-specific templates (EEE, ECE, CSE, AI/ML, Civil, Mechanical)', 'High-value equipment tracking (above ₹1.5 lakh)', 'Warranty, AMC, calibration and service schedules', 'Document uploads: invoices, manuals, certificates', 'Registered by, verified by (HOD), approved by (Principal) workflow', 'QR code generation for assets'] },
-  { key: 'search', path: '/search', label: 'Search & Assistant', icon: Search, phase: 'Phase 3', status: 'partial', needsLogin: false,
+  { key: 'search', path: '/search', label: 'Search & Assistant', icon: Search, phase: 'Phase 3', status: 'live', needsLogin: false,
     summary: 'Find equipment and facilities across SVES institutions with filters and an AI assistant.',
     features: ['Keyword and structured search with dynamic filters', 'Institution, building and lab location search', 'Export results to CSV and PDF', 'Voice search', 'Equipment recommendations', 'AI chatbot answers with sources (available now at /assistant)'] },
   { key: 'events', path: '/events', label: 'Events & Archive', icon: CalendarDays, phase: 'Phase 4', status: 'partial', needsLogin: true,

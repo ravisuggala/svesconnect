@@ -8,6 +8,8 @@ const cors = require("cors");
 const pool = require("./db/pool");
 const { optionalAuth } = require("./core/middleware");
 const chatbot = require("./modules/chatbot/routes");
+const search = require("./modules/search/routes");
+const searchIndex = require("./modules/search/index");
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -26,11 +28,12 @@ app.use("/api/c/:college", org.collegeRouter);
 app.use("/api/c/:college", labs.collegeRouter);
 app.use("/api/public", labs.publicRouter);
 app.use("/api/chatbot", chatbot.router);
+app.use("/api/search", search.router);
 
 app.get("/api/health", async (req, res) => {
   let db = false;
   try { await pool.query("SELECT 1"); db = true; } catch { /* db down */ }
-  res.json({ ok: true, db, vectors: chatbot.size() });
+  res.json({ ok: true, db, vectors: searchIndex.size(), searchMode: searchIndex.mode() });
 });
 
 // ---- Serve built frontend (production: npm run build && npm start) ----
@@ -46,7 +49,7 @@ if (fs.existsSync(dist)) {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
   pool.query("SELECT 1")
-    .then(() => { console.log("MySQL connected"); return chatbot.ingest(); })
-    .then((n) => console.log(`Vector store auto-ingested (${n} items)`))
+    .then(() => { console.log("MySQL connected"); return searchIndex.refresh(); })
+    .then((n) => console.log(`Search index built (${n} items, ${searchIndex.mode()} mode)`))
     .catch((err) => console.log("Startup DB/ingest problem:", err.message));
 });

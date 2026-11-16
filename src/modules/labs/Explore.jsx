@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Building2, FileText, FlaskConical } from 'lucide
 import { Badge, Card, EmptyState, Skeleton } from '../../ui'
 import { api } from '../../core/api'
 import EquipmentSections from './EquipmentSections'
+import SearchBox from '../search/SearchBox'
 import './labs.css'
 
 // Public pages: College > Department > Lab > Equipment. Only approved equipment is ever shown, and each lab has its own page.
@@ -23,6 +24,7 @@ export function ExploreColleges() {
     <Page>
       <h1 style={{ fontSize: '2.2rem' }}>Explore labs & equipment</h1>
       <p className="muted" style={{ maxWidth: '68ch' }}>Browse the laboratories and equipment of every SVES institution. Each lab has its own page, and only verified and approved equipment is published.</p>
+      <Card style={{ margin: 'var(--s-4) 0', maxWidth: 820 }}><SearchBox publicOnly /></Card>
       {error ? <Err error={error} /> : !data ? <Loading /> : (
         <div className="grid cols-3" style={{ marginTop: 'var(--s-5)' }}>{data.colleges.map((c) => (
           <Card hover key={c.code}><Building2 className="ico" size={26} style={{ color: 'var(--c-primary)' }} /><h3>{c.name}</h3><p className="muted">{c.city}</p>
@@ -43,7 +45,7 @@ export function ExploreCollege() {
           <h1 style={{ fontSize: '2rem' }}>{data.college.name}</h1><p className="muted">{data.college.city}</p>
           {!data.departments.length && <EmptyState title="No published labs yet" icon={FlaskConical}>Equipment appears here after it is verified and approved.</EmptyState>}
           {data.departments.map((d) => (
-            <section key={d.department} style={{ marginTop: 'var(--s-5)' }}><h3 style={{ color: 'var(--c-primary)' }}>{d.department}</h3>
+            <section key={d.department} style={{ marginTop: 'var(--s-5)' }}><h3 style={{ color: 'var(--c-primary)' }}>{d.department} <Link to={`/explore/c/${code}/d/${encodeURIComponent(d.department)}`} style={{ fontSize: 14, fontWeight: 600 }}>Department page →</Link></h3>
               <div className="grid cols-3">{d.labs.map((l) => (
                 <Card hover key={l.id}><FlaskConical size={22} style={{ color: 'var(--c-secondary-brand)' }} /><h3>{l.name}</h3>
                   <p className="muted">{l.description || [l.building, l.room].filter(Boolean).join(' · ') || ' '}</p><Badge tone="success">{l.equipment} equipment</Badge>
@@ -89,6 +91,33 @@ export function ExploreEquipment() {
           {data.files.filter((f) => f.kind !== 'photos').length > 0 && (
             <section className="eq-sec"><h3>Downloads</h3>{data.files.filter((f) => f.kind !== 'photos').map((f) => <div key={f.id}><FileText size={14} /> <a href={`/api/public/files/${f.id}`} target="_blank" rel="noopener noreferrer">{f.name}</a> <span className="muted">({data.fileKinds.find((k) => k.key === f.kind)?.label})</span></div>)}</section>)}
         </div>)}
+    </Page>
+  )
+}
+
+export function ExploreDepartment() {
+  const { code, dept } = useParams()
+  const { data, error } = useLoad(`/public/colleges/${code}/departments/${encodeURIComponent(dept)}`)
+  return (
+    <Page>
+      <Crumb to={`/explore/c/${code}`}>{data ? data.college.name : 'Back'}</Crumb>
+      {error ? <Err error={error} /> : !data ? <Loading /> : (
+        <>
+          <Badge tone="primary">{data.college.name}</Badge>
+          <h1 style={{ fontSize: '2rem', marginTop: 'var(--s-2)' }}>{data.department} department</h1>
+          <div className="counts"><Badge tone="success">{data.stats.labs} labs</Badge><Badge>{data.stats.equipment} equipment</Badge>{data.stats.working > 0 && <Badge tone="success">{data.stats.working} working</Badge>}</div>
+          {data.labs.map((l) => (
+            <section key={l.id} style={{ marginTop: 'var(--s-6)' }}>
+              <div className="row"><FlaskConical size={22} style={{ color: 'var(--c-secondary-brand)' }} /><h2 style={{ fontSize: '1.4rem', margin: 0 }}>{l.name}</h2><span className="spacer" /><Link to={`/explore/lab/${l.id}`} className="row">Lab page <ArrowRight size={14} /></Link></div>
+              <p className="muted">{l.description}{[l.building, l.floor && `Floor ${l.floor}`, l.room && `Room ${l.room}`].filter(Boolean).length ? ` · ${[l.building, l.floor && `Floor ${l.floor}`, l.room && `Room ${l.room}`].filter(Boolean).join(', ')}` : ''}</p>
+              <div className="grid cols-3">{l.equipment.map((e) => (
+                <Card hover key={e.id}>
+                  {e.photoId ? <img className="thumb" src={`/api/public/files/${e.photoId}`} alt={e.name} loading="lazy" /> : <div className="thumb thumb-empty"><FlaskConical size={32} /></div>}
+                  <h3>{e.name}</h3><p className="muted">{[e.manufacturer, e.model].filter(Boolean).join(' ') || e.type}</p>
+                  {e.status && <Badge tone={e.status === 'Working' ? 'success' : 'warning'}>{e.status}</Badge>}
+                  <p style={{ marginTop: 'var(--s-3)' }}><Link to={`/explore/equipment/${e.id}`} className="row">Details <ArrowRight size={14} /></Link></p></Card>))}</div>
+            </section>))}
+        </>)}
     </Page>
   )
 }

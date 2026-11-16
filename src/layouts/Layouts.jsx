@@ -18,7 +18,7 @@ function UserArea() {
   )
 }
 
-const publicLinks = [{ to: '/', label: 'Home' }, { to: '/explore', label: 'Explore Labs' }, { to: '/#modules', label: 'Modules', plain: true }, { to: '/assistant', label: 'AI Assistant' }, { to: '/portal', label: 'Portal' }]
+const publicLinks = [{ to: '/', label: 'Home' }, { to: '/explore', label: 'Explore Labs' }, { to: '/#modules', label: 'Modules', plain: true }, { to: '/search', label: 'Search' }, { to: '/assistant', label: 'AI Assistant' }, { to: '/portal', label: 'Portal' }]
 
 function Footer() {
   return (

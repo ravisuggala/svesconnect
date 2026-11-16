@@ -32,3 +32,6 @@ After `git pull`, always run `npm install --include=dev --ignore-scripts && npm 
 
 ## Uploaded equipment documents
 Files are stored on disk in `storage/` inside the app folder (or `STORAGE_DIR`), never in `public_html`. Back this folder up with the database. Uploads are sent as JSON (up to 8 MB per file); if uploads fail on the server, check ModSecurity / PHP-style body-size limits in WHM and the free disk space.
+
+## Search and the AI assistant on the server
+The semantic (embedding) search needs the optional `sharp` native binary, which often cannot be downloaded on shared/VPS hosts. That is fine: search automatically falls back to keyword ranking and `/api/health` reports `searchMode`. Add `GROK_API_KEY` later to get written answers from the assistant; until then it lists the closest records with links.

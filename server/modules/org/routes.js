@@ -89,6 +89,7 @@ collegeRouter.post("/users", needScope, async (req, res) => {
     await pool.query("UPDATE labs SET incharge_user_id = ? WHERE college_id = ? AND department = ? AND name = ? AND incharge_user_id IS NULL", [ins.insertId, college.id, department, labName]);
     const [[lab]] = await pool.query("SELECT id FROM labs WHERE college_id = ? AND department = ? AND name = ?", [college.id, department, labName]);
     await pool.query("UPDATE users SET lab_id = ? WHERE id = ?", [lab.id, ins.insertId]);
+    require("../search/index").touch();
   }
   const [[user]] = await pool.query(`SELECT ${COLS} FROM users WHERE id = ?`, [ins.insertId]);
   res.status(201).json({ user, initialPassword: password });

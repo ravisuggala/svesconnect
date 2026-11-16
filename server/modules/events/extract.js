@@ -64,7 +64,7 @@ const clean = (t) => String(t || "").replace(/\s+/g, " ").trim();
 /** Top `n` informative sentences, in their original order, capped at `max` characters in total. */
 function summarize(text, n = 2, max = 420) {
   // Only sentences that read like prose (rejects garbled PDF text, tables of numbers and symbols).
-  const prose = (x) => (x.match(/[A-Za-z ,.'\-]/g) || []).length / x.length >= 0.9 && (x.match(/\b[a-z]{3,}\b/gi) || []).length >= 6;
+  const prose = (x) => (x.match(/[A-Za-z ,.'-]/g) || []).length / x.length >= 0.9 && (x.match(/\b[a-z]{3,}\b/gi) || []).length >= 6;
   const sentences = clean(text).split(/(?<=[.!?])\s+(?=[A-Z0-9"'(])/).map((s) => s.trim()).filter((s) => s.length >= 40 && s.length <= 320 && prose(s));
   if (!sentences.length) return "";
   const freq = {};

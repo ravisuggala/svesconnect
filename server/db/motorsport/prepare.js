@@ -95,7 +95,7 @@ for (const top of TOPS) {
     let body = "";
     if (DOC.includes(ext) && st.size <= 80 * 1024 * 1024 && ["pdf", "docx", "pptx"].includes(ext)) body = extractText(fs.readFileSync(abs), ext);
     const summary = summarize(body, 2) || null;
-    const team = (stem.match(/Team [A-Z][\w ]*?(?=[_(\-])/) || [])[0] || (/amigos/i.test(stem) ? "Team Amigos" : "");
+    const team = (stem.match(/Team [A-Z][\w ]*?(?=[_(-])/) || [])[0] || (/amigos/i.test(stem) ? "Team Amigos" : "");
     const title = cleanTitle(stem);
     const tags = [...new Set([variant, year && String(year), subsystem, KIND[folder], ext.toUpperCase()].filter(Boolean))];
     files.push({

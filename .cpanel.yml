@@ -1,5 +1,4 @@
 ---
-# cPanel > Git Version Control > Manage > Pull or Deploy > "Deploy HEAD Commit" runs this.
 deployment:
   tasks:
     - /bin/bash /home/svesconnect/svesconnect/scripts/deploy.sh

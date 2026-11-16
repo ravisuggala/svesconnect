@@ -57,6 +57,6 @@ The records in `reference/connectfiles` (2.6 GB: SVECW/VWU, VIT, BVRIT, BVRITH; 
 ## Updating the live site in two clicks (no terminal)
 1. Push/merge your changes to `main` on GitHub.
 2. cPanel > **Git Version Control** > *Manage* on the repository > **Pull or Deploy** tab > **Update from Remote**, then **Deploy HEAD Commit**.
-That runs `.cpanel.yml` > `scripts/deploy.sh`, which does `npm ci`, `npm run build`, `npm run migrate` and restarts the app. The log is in `deploy.log` in the app folder. cPanel refuses to deploy if the server copy has uncommitted changes, so never edit files on the server.
+That runs `.cpanel.yml` > `scripts/deploy.sh`, which does `npm install --no-save`, `npm run build`, `npm run migrate` and restarts the app. The log is in `deploy.log` in the app folder. cPanel refuses to deploy if the server copy has uncommitted changes, so never edit files on the server.
 By hand (terminal) the same thing is: `git pull origin main && npm run deploy`.
 Make sure the repository in cPanel is on the `main` branch (the Basic Info tab shows "Checked-Out Branch").

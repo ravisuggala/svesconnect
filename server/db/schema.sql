@@ -18,11 +18,12 @@ CREATE TABLE IF NOT EXISTS users (
   name                 VARCHAR(120) NOT NULL,
   email                VARCHAR(190) NOT NULL,
   password_hash        VARCHAR(255) NOT NULL,
-  role                 ENUM('student','faculty','external','lab_incharge','hod','principal','admin') NOT NULL DEFAULT 'student',
+  role                 ENUM('student','faculty','external','lab_incharge','event_coordinator','event_member','hod','principal','admin') NOT NULL DEFAULT 'student',
   department           VARCHAR(120) NULL,
   lab_name             VARCHAR(160) NULL,
   created_by           INT UNSIGNED NULL,
   lab_id               INT UNSIGNED NULL,
+  event_id             INT UNSIGNED NULL,
   must_change_password TINYINT(1) NOT NULL DEFAULT 1,
   status               ENUM('active','disabled') NOT NULL DEFAULT 'active',
   created_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -101,4 +102,46 @@ CREATE TABLE IF NOT EXISTS chat_logs (
   message    TEXT NOT NULL,
   response   TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Events (BAJA, workshops, fests, consultancy ... any type). Organised college > academic year > event > folder > file.
+CREATE TABLE IF NOT EXISTS events (
+  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  college_id    INT UNSIGNED NOT NULL,
+  department    VARCHAR(120) NULL,
+  type_key      VARCHAR(40) NOT NULL,
+  name          VARCHAR(200) NOT NULL,
+  academic_year VARCHAR(20) NULL,
+  event_date    VARCHAR(60) NULL,
+  venue         VARCHAR(200) NULL,
+  description   TEXT,
+  status        ENUM('draft','published') NOT NULL DEFAULT 'draft',
+  created_by    INT UNSIGNED NULL,
+  published_at  TIMESTAMP NULL,
+  created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_event_college (college_id, status, academic_year)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Every file has its folder (and optional sub-folder), descriptive metadata and a machine-made summary.
+CREATE TABLE IF NOT EXISTS event_files (
+  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  event_id      INT UNSIGNED NOT NULL,
+  folder        VARCHAR(80) NOT NULL,
+  subfolder     VARCHAR(80) NULL,
+  title         VARCHAR(200) NOT NULL,
+  description   TEXT,
+  contributor   VARCHAR(160) NULL,
+  file_date     VARCHAR(40) NULL,
+  tags          VARCHAR(300) NULL,
+  is_public     TINYINT(1) NOT NULL DEFAULT 0,
+  original_name VARCHAR(255) NOT NULL,
+  stored_name   VARCHAR(400) NOT NULL,
+  mime          VARCHAR(120),
+  size          INT UNSIGNED NOT NULL DEFAULT 0,
+  summary       TEXT,
+  extracted     MEDIUMTEXT,
+  uploaded_by   INT UNSIGNED NULL,
+  created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_ef_event (event_id, folder, subfolder)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Outlet } from 'react-router-dom'
-import { Bot, FlaskConical, Home, KeyRound, LayoutGrid, LogIn, LogOut, Users } from 'lucide-react'
+import { Bot, CalendarDays, FlaskConical, Home, KeyRound, LayoutGrid, LogIn, LogOut, Users } from 'lucide-react'
 import { Button, Navbar, Sidebar } from '../ui'
 import { useAuth } from '../core/auth'
 import { MODULES } from '../core/modules'
@@ -18,7 +18,7 @@ function UserArea() {
   )
 }
 
-const publicLinks = [{ to: '/', label: 'Home' }, { to: '/explore', label: 'Explore Labs' }, { to: '/#modules', label: 'Modules', plain: true }, { to: '/search', label: 'Search' }, { to: '/assistant', label: 'AI Assistant' }, { to: '/portal', label: 'Portal' }]
+const publicLinks = [{ to: '/', label: 'Home' }, { to: '/explore', label: 'Explore Labs' }, { to: '/events', label: 'Events' }, { to: '/#modules', label: 'Modules', plain: true }, { to: '/search', label: 'Search' }, { to: '/assistant', label: 'AI Assistant' }, { to: '/portal', label: 'Portal' }]
 
 function Footer() {
   return (
@@ -40,9 +40,11 @@ export function PortalLayout() {
   const { user } = useAuth()
   const c = user?.college?.code?.toLowerCase()
   const mine = !user ? [] : {
-    principal: [{ to: `/c/${c}/lab-details`, label: 'Labs & equipment', icon: FlaskConical }, { to: `/c/${c}/hods`, label: 'Heads of Department', icon: Users }],
-    hod: [{ to: `/c/${c}/lab-details`, label: 'Labs & equipment', icon: FlaskConical }, { to: `/c/${c}/labs`, label: 'Lab Coordinators', icon: Users }],
+    principal: [{ to: `/c/${c}/lab-details`, label: 'Labs & equipment', icon: FlaskConical }, { to: `/c/${c}/events`, label: 'Events & projects', icon: CalendarDays }, { to: `/c/${c}/hods`, label: 'Heads of Department', icon: Users }],
+    hod: [{ to: `/c/${c}/lab-details`, label: 'Labs & equipment', icon: FlaskConical }, { to: `/c/${c}/events`, label: 'Events & projects', icon: CalendarDays }, { to: `/c/${c}/labs`, label: 'Lab Coordinators', icon: Users }],
     lab_incharge: [{ to: `/c/${c}/lab`, label: 'My lab', icon: FlaskConical }],
+    event_coordinator: [{ to: `/c/${c}/event/${user.eventId}`, label: 'My event', icon: CalendarDays }],
+    event_member: [{ to: `/c/${c}/event/${user.eventId}`, label: 'My event', icon: CalendarDays }],
   }[user.role] || []
   const groups = [
     ...(mine.length ? [{ title: user.college.code, items: [...mine, { to: '/change-password', label: 'Change password', icon: KeyRound }] }] : []),

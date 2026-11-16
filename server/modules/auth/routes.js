@@ -6,7 +6,7 @@ const { defaultPassword } = require("../../core/org");
 
 const router = express.Router();
 const publicUser = (u, c) => ({
-  id: u.id, name: u.name, email: u.email, role: u.role, department: u.department || null, labName: u.lab_name || null,
+  id: u.id, name: u.name, email: u.email, role: u.role, department: u.department || null, labName: u.lab_name || null, eventId: u.event_id || null,
   mustChangePassword: !!u.must_change_password, college: { id: c.id, code: c.code, name: c.name },
 });
 const session = (u, c) => ({ token: signToken({ id: u.id, role: u.role, name: u.name, college_id: c.id, college: c.code }), user: publicUser(u, c) });

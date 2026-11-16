@@ -29,7 +29,8 @@ async function upgradeEquipment() {
     updated_at: "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
   };
   for (const [col, def] of Object.entries(add)) if (!(await columnExists("equipment", col))) await pool.query(`ALTER TABLE equipment ADD COLUMN ${col} ${def}`);
-  for (const [t, col, def] of [["labs", "contact_name", "VARCHAR(160)"], ["labs", "contact_email", "VARCHAR(190)"], ["labs", "contact_phone", "VARCHAR(40)"], ["colleges", "address", "VARCHAR(300)"]])
+  await pool.query("ALTER TABLE users MODIFY role ENUM('student','faculty','external','lab_incharge','event_coordinator','event_member','hod','principal','admin') NOT NULL DEFAULT 'student'");
+  for (const [t, col, def] of [["users", "event_id", "INT UNSIGNED NULL"], ["labs", "contact_name", "VARCHAR(160)"], ["labs", "contact_email", "VARCHAR(190)"], ["labs", "contact_phone", "VARCHAR(40)"], ["colleges", "address", "VARCHAR(300)"]])
     if (!(await columnExists(t, col))) await pool.query(`ALTER TABLE ${t} ADD COLUMN ${col} ${def}`);
   if (!(await indexExists("equipment", "idx_equipment_lab"))) await pool.query("ALTER TABLE equipment ADD KEY idx_equipment_lab (lab_id, status)");
 }

@@ -1,5 +1,5 @@
 export const ROLE_LABEL = {
-  admin: 'Administrator', principal: 'Principal', hod: 'Head of Department', lab_incharge: 'Lab Coordinator',
+  admin: 'Administrator', principal: 'Principal', hod: 'Head of Department', lab_incharge: 'Lab Coordinator', event_coordinator: 'Event Coordinator', event_member: 'Event Team Member',
   faculty: 'Faculty', student: 'Student', external: 'External',
 }
 
@@ -12,6 +12,8 @@ export function homePath(u) {
     case 'principal': return `/c/${c}/lab-details`
     case 'hod': return `/c/${c}/lab-details`
     case 'lab_incharge': return `/c/${c}/lab`
+    case 'event_coordinator':
+    case 'event_member': return u.eventId ? `/c/${c}/event/${u.eventId}` : '/portal'
     default: return '/portal'
   }
 }

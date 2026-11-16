@@ -7,7 +7,6 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Portal from './pages/Portal'
 import Chatbot from './pages/Chatbot'
-import Documents from './pages/Documents'
 import ModulePlaceholder from './modules/ModulePlaceholder'
 import SearchPage from './modules/search/SearchPage'
 import ChangePassword from './pages/ChangePassword'
@@ -19,6 +18,9 @@ import LabsOverview from './modules/labs/LabsOverview'
 import LabDetail from './modules/labs/LabDetail'
 import { ExploreCollege, ExploreColleges, ExploreDepartment, ExploreEquipment, ExploreLab } from './modules/labs/Explore'
 import AdminColleges from './modules/org/AdminColleges'
+import { EventPublic, EventsHome } from './modules/events/EventsPublic'
+import EventsManage from './modules/events/EventsManage'
+import EventWorkspace from './modules/events/EventWorkspace'
 
 function ScrollToHash() {
   const { pathname, hash } = useLocation()
@@ -30,7 +32,7 @@ function ScrollToHash() {
 }
 
 // Modules with a real implementation; everything else shows its planned scope.
-const IMPLEMENTED = { admin: <AdminColleges />, events: <Documents />, search: <SearchPage /> }
+const IMPLEMENTED = { admin: <AdminColleges />, search: <SearchPage /> }
 
 export default function App() {
   return (
@@ -45,6 +47,8 @@ export default function App() {
           <Route path="/explore/c/:code/d/:dept" element={<ExploreDepartment />} />
           <Route path="/explore/lab/:id" element={<ExploreLab />} />
           <Route path="/explore/equipment/:id" element={<ExploreEquipment />} />
+          <Route path="/events" element={<EventsHome />} />
+          <Route path="/events/:id" element={<EventPublic />} />
         </Route>
         <Route element={<PortalLayout />}>
           <Route path="/portal" element={<RequireAuth><Portal /></RequireAuth>} />
@@ -59,9 +63,11 @@ export default function App() {
             <Route path="lab-details" element={<RequireAuth roles={['hod', 'principal', 'admin']}><LabsOverview /></RequireAuth>} />
             <Route path="lab-details/:labId" element={<RequireAuth roles={['hod', 'principal', 'admin', 'lab_incharge']}><LabDetail /></RequireAuth>} />
             <Route path="equipment/:id" element={<EquipmentView />} />
+            <Route path="events" element={<RequireAuth roles={['hod', 'principal', 'admin']}><EventsManage /></RequireAuth>} />
+            <Route path="event/:id" element={<EventWorkspace />} />
             <Route path="principal" element={<RequireAuth roles={['admin']}><Accounts kind="principal" /></RequireAuth>} />
           </Route>
-          {MODULES.map((m) => {
+          {MODULES.filter((m) => m.key !== 'events').map((m) => {
             const page = IMPLEMENTED[m.key] ?? <ModulePlaceholder module={m} />
             return <Route key={m.key} path={m.path} element={m.needsLogin ? <RequireAuth roles={m.roles}>{page}</RequireAuth> : page} />
           })}

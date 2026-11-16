@@ -21,12 +21,15 @@ app.use(optionalAuth);
 // ---- Module APIs: each module mounts under /api/<module> ----
 const org = require("./modules/org/routes");
 const labs = require("./modules/labs/routes");
+const events = require("./modules/events/routes");
 app.use("/api/auth", require("./modules/auth/routes"));
 app.use("/api/colleges", org.publicRouter);
 app.use("/api/admin", org.adminRouter);
 app.use("/api/c/:college", org.collegeRouter);
 app.use("/api/c/:college", labs.collegeRouter);
+app.use("/api/c/:college", events.collegeRouter);
 app.use("/api/public", labs.publicRouter);
+app.use("/api/public", events.publicRouter);
 app.use("/api/chatbot", chatbot.router);
 app.use("/api/search", search.router);
 

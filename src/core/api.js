@@ -28,3 +28,14 @@ export const fileToBase64 = (file) => new Promise((resolve, reject) => {
   r.onerror = () => reject(r.error)
   r.readAsDataURL(file)
 })
+
+/** Fetch a protected file with the sign-in token and save it to disk. */
+export async function downloadFile(path, name) {
+  const t = getToken()
+  const res = await fetch(`/api${path}${path.includes('?') ? '&' : '?'}download=1`, { headers: t ? { Authorization: `Bearer ${t}` } : {} })
+  if (!res.ok) throw new Error('Could not download the file')
+  const url = URL.createObjectURL(await res.blob())
+  const a = Object.assign(document.createElement('a'), { href: url, download: name })
+  document.body.appendChild(a); a.click(); a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 30000)
+}

@@ -1,4 +1,4 @@
-node_modules/
+node_modules
 dist/
 coverage/
 .env
@@ -16,3 +16,6 @@ reference/
 release/
 storage/
 deploy.log
+
+# created on the server by cPanel / Passenger
+tmp/

@@ -9,6 +9,7 @@ export function homePath(u) {
   if (u.mustChangePassword) return '/change-password'
   const c = u.college?.code?.toLowerCase()
   switch (u.role) {
+    case 'admin': return '/admin'
     case 'principal': return `/c/${c}/lab-details`
     case 'hod': return `/c/${c}/lab-details`
     case 'lab_incharge': return `/c/${c}/lab`

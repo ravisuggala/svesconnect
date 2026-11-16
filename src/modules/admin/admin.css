@@ -1,0 +1,7 @@
+.adm-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:var(--s-3); margin-bottom:var(--s-4); }
+.adm-stat { background:var(--c-surface); border:1px solid var(--c-border); border-radius:var(--r-md); padding:var(--s-3) var(--s-4); font-size:13px; color:var(--c-muted); }
+.adm-stat b { display:block; font:800 1.5rem var(--f-head); color:var(--c-primary); }
+.adm-links { display:flex; gap:10px; flex-wrap:wrap; font-size:13px; font-weight:600; }
+.adm-filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:var(--s-3); align-items:end; margin-bottom:var(--s-4); }
+.adm-act { gap:2px; flex-wrap:nowrap; }
+.adm-cred { font-family:var(--f-mono); background:var(--c-surface-2); padding:var(--s-3); border-radius:var(--r-md); }

@@ -24,7 +24,7 @@ const labs = require("./modules/labs/routes");
 const events = require("./modules/events/routes");
 app.use("/api/auth", require("./modules/auth/routes"));
 app.use("/api/colleges", org.publicRouter);
-app.use("/api/admin", org.adminRouter);
+app.use("/api/admin", require("./modules/admin/routes").router);
 app.use("/api/c/:college", org.collegeRouter);
 app.use("/api/c/:college", labs.collegeRouter);
 app.use("/api/c/:college", events.collegeRouter);

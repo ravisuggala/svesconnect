@@ -17,7 +17,7 @@ import EquipmentView from './modules/labs/EquipmentView'
 import LabsOverview from './modules/labs/LabsOverview'
 import LabDetail from './modules/labs/LabDetail'
 import { ExploreCollege, ExploreColleges, ExploreDepartment, ExploreEquipment, ExploreLab } from './modules/labs/Explore'
-import AdminColleges from './modules/org/AdminColleges'
+import AdminConsole from './modules/admin/AdminConsole'
 import { EventPublic, EventsHome } from './modules/events/EventsPublic'
 import EventsManage from './modules/events/EventsManage'
 import EventWorkspace from './modules/events/EventWorkspace'
@@ -32,7 +32,7 @@ function ScrollToHash() {
 }
 
 // Modules with a real implementation; everything else shows its planned scope.
-const IMPLEMENTED = { admin: <AdminColleges />, search: <SearchPage /> }
+const IMPLEMENTED = { admin: <AdminConsole />, search: <SearchPage /> }
 
 export default function App() {
   return (

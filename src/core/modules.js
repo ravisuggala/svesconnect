@@ -21,8 +21,8 @@ export const MODULES = [
   { key: 'dashboards', path: '/dashboards', label: 'Dashboards', icon: LayoutDashboard, phase: 'Phase 6', status: 'planned', needsLogin: true,
     summary: 'Role-based analytics for Admin, HOD, Lab In-charge, Principal and the public.',
     features: ['Real-time KPIs, charts and graphs', 'Equipment status, utilisation and investment', 'Department and institution views', 'Reports for audits and accreditation'] },
-  { key: 'admin', path: '/admin', label: 'Administration', icon: ShieldCheck, phase: 'Phase 1', status: 'planned', needsLogin: true, roles: ['admin'],
-    summary: 'Manage users, roles and audit logs.',
-    features: ['User approval and roles', 'Audit logs for search, chat and edits', 'Master data: institutions, departments'] },
+  { key: 'admin', path: '/admin', label: 'Administration', icon: ShieldCheck, phase: 'Phase 1', status: 'live', needsLogin: true, roles: ['admin'],
+    summary: 'Administrator console: every college, account, lab, event and document in one place.',
+    features: ['Create any type of account in any college; unlock, reset or set passwords; disable or delete', 'Open any college as its Principal would: labs, equipment, events, files', 'Approve equipment and publish events anywhere', 'Cross-college overview of labs, equipment, events and files'] },
 ]
 export const NAV_ICONS = { Home, Bot }

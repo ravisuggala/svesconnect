@@ -149,7 +149,7 @@ collegeRouter.get("/equipment/:id", async (req, res) => {
   res.json({
     equipment: { id: eq.id, name: eq.name, status: eq.status, templateKey: eq.template_key, labId: eq.lab_id, labName: eq.lab_name, department: eq.lab_department, reviewNote: eq.review_note, data: eq.data, submittedAt: eq.submitted_at, verifiedAt: eq.verified_at, approvedAt: eq.approved_at },
     files, spec,
-    can: { edit: isOwner(req.me, eq) && editable(eq), review: reviewAction(req.me, eq), delete: isOwner(req.me, eq) && eq.status === "draft" },
+    can: { edit: isOwner(req.me, eq) && editable(eq), review: reviewAction(req.me, eq), delete: req.me.role === "admin" || (isOwner(req.me, eq) && eq.status === "draft") },
   });
 });
 
@@ -180,6 +180,7 @@ collegeRouter.post("/equipment/:id/submit", async (req, res) => {
 
 // Coordinator submits; the HOD of that department gives the final approval (publishes) or sends it back. The Principal only views.
 function reviewAction(me, eq) {
+  if (me.role === "admin") return eq.status === "submitted" ? "approve" : null; // the administrator can act for any HOD
   return me.role === "hod" && eq.status === "submitted" && eq.lab_department === me.department ? "approve" : null;
 }
 collegeRouter.post("/equipment/:id/review", async (req, res) => {
@@ -202,7 +203,7 @@ collegeRouter.post("/equipment/:id/review", async (req, res) => {
 collegeRouter.delete("/equipment/:id", async (req, res) => {
   const eq = await loadEquipment(req, req.params.id);
   if (!eq) return res.status(404).json({ error: "Equipment not found." });
-  if (!isOwner(req.me, eq) || eq.status !== "draft") return res.status(403).json({ error: "Only your own drafts can be deleted." });
+  if (req.me.role !== "admin" && (!isOwner(req.me, eq) || eq.status !== "draft")) return res.status(403).json({ error: "Only your own drafts can be deleted." });
   const [files] = await pool.query("SELECT stored_name FROM equipment_files WHERE equipment_id = ?", [eq.id]);
   for (const f of files) fs.rm(path.join(STORAGE, f.stored_name), { force: true }, () => {});
   await pool.query("DELETE FROM equipment_files WHERE equipment_id = ?", [eq.id]);

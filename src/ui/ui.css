@@ -34,7 +34,11 @@
 .empty svg { color:var(--c-primary); opacity:.6; margin-bottom:var(--s-3); }
 /* Modal */
 .modal-back { position:fixed; inset:0; background:rgba(42,15,54,.55); display:flex; align-items:center; justify-content:center; z-index:1000; padding:var(--s-4); animation:fadeUp .2s both; }
-.modal { background:var(--c-surface); border-radius:var(--r-lg); box-shadow:var(--sh-3); width:100%; max-width:520px; max-height:90vh; overflow:auto; padding:var(--s-5); }
+.modal { background:var(--c-surface); border-radius:var(--r-lg); box-shadow:var(--sh-3); width:100%; max-width:520px; max-height:min(92vh, calc(100dvh - 2rem)); display:flex; flex-direction:column; overflow:hidden; }
+/* the title and the close button stay visible; only the form scrolls, and the buttons stay in view at the bottom */
+.modal-head { flex:none; padding:var(--s-4) var(--s-5); border-bottom:1px solid var(--c-border); }
+.modal-body { padding:var(--s-4) var(--s-5) var(--s-5); overflow-y:auto; overscroll-behavior:contain; }
+.modal-body form > .row:last-child { position:sticky; bottom:calc(-1 * var(--s-5)); background:var(--c-surface); margin-top:var(--s-3); padding:var(--s-3) 0 var(--s-5); border-top:1px solid var(--c-border); z-index:1; }
 /* Toast */
 .toasts { position:fixed; right:var(--s-4); bottom:var(--s-4); display:flex; flex-direction:column; gap:var(--s-2); z-index:1100; }
 .toast { background:var(--c-ink); color:var(--c-on-ink); padding:12px 16px; border-radius:var(--r-md); box-shadow:var(--sh-3); font-size:14px; border-left:4px solid var(--c-accent); animation:fadeUp .25s both; }

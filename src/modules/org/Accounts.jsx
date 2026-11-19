@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { KeyRound, Plus, UserCheck, UserX } from 'lucide-react'
+import { KeyRound, Pencil, Plus, UserCheck, UserX } from 'lucide-react'
 import { Badge, Button, EmptyState, Input, Modal, Table, useToast } from '../../ui'
 import { useAuth } from '../../core/auth'
 import { api } from '../../core/api'
@@ -25,6 +25,7 @@ export default function Accounts({ kind }) {
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
   const [created, setCreated] = useState(null)
+  const [edit, setEdit] = useState(null)
 
   const load = useCallback(() => {
     api(`/c/${college}/users`).then(setData).catch((e) => toast(e.message, 'error')).finally(() => setLoading(false))
@@ -41,6 +42,13 @@ export default function Accounts({ kind }) {
       setOpen(false); setCreated({ email: r.user.email, password: r.initialPassword })
       setForm(EMPTY)
       load()
+    } catch (err) { setErrors(err.fields || { form: err.message }) } finally { setBusy(false) }
+  }
+  const saveEdit = async (ev) => {
+    ev.preventDefault(); setBusy(true); setErrors({})
+    try {
+      await api(`/c/${college}/users/${edit.id}`, { method: 'PATCH', body: { action: 'update', email: edit.email, name: edit.name, labName: edit.labName, department: edit.department } })
+      setEdit(null); toast('Saved'); load()
     } catch (err) { setErrors(err.fields || { form: err.message }) } finally { setBusy(false) }
   }
   const act = async (u, action) => {
@@ -60,6 +68,7 @@ export default function Accounts({ kind }) {
     { key: 'status', label: 'Status', render: (u) => <Badge tone={u.status === 'active' ? 'success' : 'error'}>{u.status === 'active' ? 'Active' : 'Disabled'}</Badge> },
     { key: 'actions', label: '', render: (u) => (
       <span className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+        {k.canCreate && <Button variant="ghost" size="sm" onClick={() => { setErrors({}); setEdit({ id: u.id, email: u.email, name: u.name || '', labName: u.labName || '', department: u.department || '' }) }}><Pencil size={14} /> Edit</Button>}
         <Button variant="ghost" size="sm" onClick={() => act(u, 'reset')}><KeyRound size={14} /> Reset</Button>
         {u.status === 'active'
           ? <Button variant="ghost" size="sm" onClick={() => act(u, 'disable')}><UserX size={14} /> Disable</Button>
@@ -97,6 +106,17 @@ export default function Accounts({ kind }) {
             <Button type="submit" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={!!edit} title={`Edit ${k.noun}`} onClose={() => setEdit(null)}>
+        {edit && <form onSubmit={saveEdit} noValidate>
+          <Input label="Email" type="email" value={edit.email} onChange={(e) => setEdit({ ...edit, email: e.target.value })} error={errors.email} hint="Used to sign in. Change it if it was typed wrongly." />
+          <Input label="Name" value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
+          {kind === 'hod' && <Input label="Department" value={edit.department} onChange={(e) => setEdit({ ...edit, department: e.target.value })} error={errors.department} hint="Changing it moves this department's labs, coordinators and events to the new name." />}
+          {kind === 'lab_incharge' && <Input label="Lab name" value={edit.labName} onChange={(e) => setEdit({ ...edit, labName: e.target.value })} error={errors.labName} />}
+          {errors.form && <p role="alert" style={{ color: 'var(--c-error)' }}>{errors.form}</p>}
+          <div className="row" style={{ justifyContent: 'flex-end' }}><Button type="button" variant="ghost" onClick={() => setEdit(null)}>Cancel</Button><Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button></div>
+        </form>}
       </Modal>
 
       <Modal open={!!created} title={created?.reset ? 'Password reset' : 'Account ready'} onClose={() => setCreated(null)}>

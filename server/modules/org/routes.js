@@ -95,11 +95,56 @@ collegeRouter.post("/users", needScope, async (req, res) => {
   res.status(201).json({ user, initialPassword: password });
 });
 
-// action: reset (back to default password) | disable | enable
+// Edit the details of an account in the caller's scope: email, name; for a lab coordinator the lab name; for a HOD the department
+// (a department rename is carried over to that department's labs, equipment, coordinators and events so nothing is orphaned).
+async function updateAccount(req, res, target) {
+  const { college } = req;
+  const b = req.body || {};
+  const fields = {};
+  const email = String(b.email ?? target.email).trim().toLowerCase();
+  if (!emailOk(email)) fields.email = "Enter a valid email address.";
+  else if (email !== target.email) {
+    const [dup] = await pool.query("SELECT id FROM users WHERE college_id = ? AND email = ? AND id <> ?", [college.id, email, target.id]);
+    if (dup.length) fields.email = "That email already has an account in this college.";
+  }
+  const name = String(b.name ?? target.name).trim().slice(0, 120) || target.name;
+  let labName = target.lab_name, department = target.department;
+  if (target.role === "lab_incharge") {
+    labName = String(b.labName ?? target.lab_name).trim().slice(0, 160);
+    if (labName.length < 2) fields.labName = "Enter the lab name.";
+    else if (labName !== target.lab_name) {
+      const [dup] = await pool.query("SELECT id FROM labs WHERE college_id = ? AND department = ? AND name = ? AND id <> ?", [college.id, target.department, labName, target.lab_id || 0]);
+      if (dup.length) fields.labName = "This department already has a lab with that name.";
+    }
+  }
+  if (target.role === "hod") {
+    department = String(b.department ?? target.department).trim().slice(0, 120);
+    if (department.length < 2) fields.department = "Enter the department.";
+    else if (department !== target.department) {
+      const [dup] = await pool.query("SELECT id FROM users WHERE college_id = ? AND role = 'hod' AND department = ? AND id <> ?", [college.id, department, target.id]);
+      if (dup.length) fields.department = "Another HOD already has that department.";
+    }
+  }
+  if (Object.keys(fields).length) return res.status(400).json({ error: "Please correct the highlighted fields.", fields });
+  await pool.query("UPDATE users SET email = ?, name = ?, lab_name = ?, department = ? WHERE id = ?", [email, name, labName, department, target.id]);
+  if (target.role === "lab_incharge" && target.lab_id && labName !== target.lab_name) await pool.query("UPDATE labs SET name = ? WHERE id = ?", [labName, target.lab_id]);
+  if (target.role === "hod" && department !== target.department) {
+    const old = target.department;
+    await pool.query("UPDATE users SET department = ? WHERE college_id = ? AND department = ? AND id <> ?", [department, college.id, old, target.id]);
+    await pool.query("UPDATE labs SET department = ? WHERE college_id = ? AND department = ?", [department, college.id, old]);
+    await pool.query("UPDATE equipment SET department = ? WHERE college_id = ? AND department = ?", [department, college.id, old]);
+    await pool.query("UPDATE events SET department = ? WHERE college_id = ? AND department = ?", [department, college.id, old]);
+  }
+  require("../search/index").touch();
+  res.json({ ok: true });
+}
+
+// action: reset (back to default password) | disable | enable | update
 collegeRouter.patch("/users/:id", needScope, async (req, res) => {
-  const [[target]] = await pool.query(`SELECT id FROM users WHERE id = ? AND ${req.scope.where}`, [Number(req.params.id), ...req.scope.params]);
+  const [[target]] = await pool.query(`SELECT * FROM users WHERE id = ? AND ${req.scope.where}`, [Number(req.params.id), ...req.scope.params]);
   if (!target) return res.status(404).json({ error: "Account not found." });
   const { action } = req.body || {};
+  if (action === "update") return updateAccount(req, res, target);
   if (action === "reset") {
     await pool.query("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?", [hashPassword(defaultPassword()), target.id]);
     return res.json({ ok: true, initialPassword: defaultPassword() });

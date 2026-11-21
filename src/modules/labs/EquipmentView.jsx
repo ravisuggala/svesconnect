@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Check, FileText, Pencil, Trash2, X } from 'lucide-react'
-import { Badge, Button, Card, Loader, Modal, useToast } from '../../ui'
+import { Badge, Button, Card, Loader, Modal, useDialog, useToast } from '../../ui'
 import { api, openFile } from '../../core/api'
 import { useAuth } from '../../core/auth'
 import EquipmentSections from './EquipmentSections'
@@ -14,6 +14,7 @@ export default function EquipmentView() {
   const { college, id } = useParams()
   const nav = useNavigate()
   const toast = useToast()
+  const dialog = useDialog()
   const { user } = useAuth()
   const [r, setR] = useState(null)
   const [reject, setReject] = useState(null)
@@ -31,7 +32,7 @@ export default function EquipmentView() {
     try { await api(`/c/${college}/equipment/${id}/review`, { method: 'POST', body: { decision, note } }); setReject(null); toast(decision === 'approve' ? 'Done' : 'Sent back to the coordinator'); load() }
     catch (er) { toast(er.message, 'error') }
   }
-  const remove = async () => { if (!window.confirm('Delete this draft?')) return; await api(`/c/${college}/equipment/${id}`, { method: 'DELETE' }); nav(`/c/${college}/lab`) }
+  const remove = async () => { if (!(await dialog.confirm({ title: 'Delete this draft?', message: 'This equipment draft and its files will be removed. This cannot be undone.', confirmText: 'Delete', tone: 'danger' }))) return; await api(`/c/${college}/equipment/${id}`, { method: 'DELETE' }); nav(`/c/${college}/lab`) }
 
   return (
     <div className="fade-up" style={{ maxWidth: 900 }}>

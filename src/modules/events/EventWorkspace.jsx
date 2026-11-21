@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Download, Eye, Globe, Lock, Pencil, Plus, Trash2, UploadCloud, UserPlus } from 'lucide-react'
-import { Badge, Button, Card, EmptyState, Input, Modal, Select, Skeleton, useToast } from '../../ui'
+import { Badge, Button, Card, EmptyState, Input, Modal, Select, Skeleton, useDialog, useToast } from '../../ui'
 import { api, downloadFile, fileToBase64, openFile } from '../../core/api'
 import './events.css'
 
@@ -13,6 +13,7 @@ const EMPTY_UP = { files: [], folder: '', newFolder: '', subfolder: '', title: '
 export default function EventWorkspace() {
   const { college, id } = useParams()
   const toast = useToast()
+  const dialog = useDialog()
   const [d, setD] = useState(null)
   const [error, setError] = useState('')
   const [tab, setTab] = useState('files')
@@ -74,12 +75,12 @@ export default function EventWorkspace() {
     try { await api(`${base}/event-files/${edit.id}`, { method: 'PATCH', body: { ...edit, tags: edit.tags } }); setEdit(null); load(); toast('Saved') } catch (err) { toast(err.message, 'error') } finally { setBusy(false) }
   }
   const remove = async (f) => {
-    if (!window.confirm(`Delete “${f.title}”? This cannot be undone.`)) return
+    if (!(await dialog.confirm({ title: 'Delete this file?', message: `“${f.title}” will be deleted. This cannot be undone.`, confirmText: 'Delete', tone: 'danger' }))) return
     try { await api(`${base}/event-files/${f.id}`, { method: 'DELETE' }); load() } catch (err) { toast(err.message, 'error') }
   }
   const publish = async () => {
     const on = ev.status !== 'published'
-    if (on && !window.confirm('Publish this event? The summary and the files marked Public become visible to everyone.')) return
+    if (on && !(await dialog.confirm({ title: 'Publish this event?', message: 'The summary and the files marked Public become visible to everyone.', confirmText: 'Publish' }))) return
     try { await api(`${base}/events/${id}/publish`, { method: 'POST', body: { published: on } }); load(); toast(on ? 'Event published' : 'Event unpublished') } catch (err) { toast(err.message, 'error') }
   }
   const saveInfo = async (e) => {
@@ -91,7 +92,7 @@ export default function EventWorkspace() {
     try { const r = await api(`${base}/events/${id}/people`, { method: 'POST', body: person }); setPerson(null); setCreds({ email: r.email, password: r.initialPassword }); load() } catch (err) { toast(err.message, 'error') } finally { setBusy(false) }
   }
   const act = async (u, action) => {
-    if (action === 'reset' && !window.confirm(`Reset the password of ${u.email}?`)) return
+    if (action === 'reset' && !(await dialog.confirm({ title: 'Reset password?', message: `The password of ${u.email} will go back to the default password.`, confirmText: 'Reset password', tone: 'warning' }))) return
     try { const r = await api(`${base}/events/${id}/people/${u.id}`, { method: 'PATCH', body: { action } }); if (action === 'reset') setCreds({ email: u.email, password: r.initialPassword, reset: true }); load() } catch (err) { toast(err.message, 'error') }
   }
   const folderOptions = [...d.defaultFolders.map((f) => f.name), ...tree.map((t) => t.name).filter((n) => !d.defaultFolders.some((f) => f.name === n))]

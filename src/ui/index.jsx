@@ -86,15 +86,20 @@ export function Table({ columns, rows, pageSize = 10, loading, empty }) {
   )
 }
 
+import { DialogCtx } from './Dialog'
+export { DialogProvider, useDialog } from './Dialog'
 const ToastCtx = createContext(() => {})
 export const useToast = () => useContext(ToastCtx)
 export function ToastProvider({ children }) {
   const [list, setList] = useState([])
+  const dlg = useContext(DialogCtx)
   const push = useCallback((message, kind = 'success') => {
+    if (kind === 'error' && dlg) { dlg.error(message); return } // errors and warnings are shown in our own dialog, not a fading notice
+    if (kind === 'warning' && dlg) { dlg.warning(message); return }
     const id = Math.random()
     setList((l) => [...l, { id, message, kind }])
     setTimeout(() => setList((l) => l.filter((t) => t.id !== id)), 4000)
-  }, [])
+  }, [dlg])
   return (
     <ToastCtx.Provider value={push}>
       {children}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { KeyRound, Plus, Search, Trash2, Unlock, UserCheck, UserX } from 'lucide-react'
-import { Badge, Button, Card, EmptyState, Input, Modal, Select, Table, useToast } from '../../ui'
+import { Badge, Button, Card, EmptyState, Input, Modal, Select, Table, useDialog, useToast } from '../../ui'
 import { ROLE_LABEL } from '../../core/roles'
 import { api } from '../../core/api'
 import './admin.css'
@@ -33,6 +33,7 @@ function Overview({ data }) {
 
 function Users({ colleges }) {
   const toast = useToast()
+  const dialog = useDialog()
   const [filter, setFilter] = useState({ college: '', role: '', status: '', q: '' })
   const [q, setQ] = useState('')
   const [users, setUsers] = useState([])
@@ -67,7 +68,7 @@ function Users({ colleges }) {
     } catch (err) { setErrors(err.fields || { form: err.message }) } finally { setBusy(false) }
   }
   const act = async (u, action, extra = {}) => {
-    if (action === 'delete') { if (!window.confirm(`Delete the account ${u.email}? This cannot be undone.`)) return
+    if (action === 'delete') { if (!(await dialog.confirm({ title: 'Delete this account?', message: `${u.email} will be deleted. This cannot be undone.`, confirmText: 'Delete account', tone: 'danger' }))) return
       try { await api(`/admin/users/${u.id}`, { method: 'DELETE' }); toast('Account deleted'); load() } catch (e) { toast(e.message, 'error') }; return }
     try {
       const r = await api(`/admin/users/${u.id}`, { method: 'PATCH', body: { action, ...extra } })
@@ -86,7 +87,7 @@ function Users({ colleges }) {
     { key: 'status', label: 'Status', render: (u) => <Badge tone={u.status === 'active' ? 'success' : 'error'}>{u.status === 'active' ? 'Active' : 'Disabled'}</Badge> },
     { key: 'act', label: 'Actions', render: (u) => (
       <span className="row adm-act">
-        <Button variant="ghost" size="sm" title="Unlock: enable and reset to the default password" onClick={() => window.confirm(`Unlock ${u.email}? The password goes back to the default.`) && act(u, 'unlock')}><Unlock size={14} /></Button>
+        <Button variant="ghost" size="sm" title="Unlock: enable and reset to the default password" onClick={async () => { if (await dialog.confirm({ title: 'Unlock this account?', message: `${u.email} will be enabled and the password goes back to the default.`, confirmText: 'Unlock' })) act(u, 'unlock') }}><Unlock size={14} /></Button>
         <Button variant="ghost" size="sm" title="Set a password" onClick={() => setPw({ u, password: '' })}><KeyRound size={14} /></Button>
         <Button variant="ghost" size="sm" title={u.status === 'active' ? 'Disable' : 'Enable'} onClick={() => act(u, u.status === 'active' ? 'disable' : 'enable')}>{u.status === 'active' ? <UserX size={14} /> : <UserCheck size={14} />}</Button>
         <Button variant="ghost" size="sm" onClick={() => setEdit({ u, name: u.name, email: u.email })}>Edit</Button>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Check, FileText, History, Pencil, X } from 'lucide-react'
-import { Badge, Button, Card, EmptyState, Modal, Skeleton, useToast } from '../../ui'
+import { Badge, Button, Card, EmptyState, Modal, Skeleton, useDialog, useToast } from '../../ui'
 import { api } from '../../core/api'
 import EquipmentSections from './EquipmentSections'
 import { STATUS } from './spec'
@@ -14,6 +14,7 @@ const when = (t) => new Date(t).toLocaleDateString('en-IN', { day: 'numeric', mo
 export default function LabReview() {
   const { college, labId } = useParams()
   const toast = useToast()
+  const dialog = useDialog()
   const [d, setD] = useState(null)
   const [error, setError] = useState('')
   const [back, setBack] = useState(null)
@@ -26,7 +27,7 @@ export default function LabReview() {
   const ready = d.equipment.filter((e) => e.status === 'submitted')
   const waitingInCharge = d.equipment.filter((e) => e.status === 'draft' || e.status === 'rejected')
   const approveLab = async () => {
-    if (!window.confirm(`Approve ${ready.length} equipment and publish this lab? Changes go live for the public now.`)) return
+    if (!(await dialog.confirm({ title: 'Approve this lab?', message: `${ready.length} equipment will be published. The changes become visible to the public now.`, confirmText: 'Approve and publish' }))) return
     setBusy(true)
     try { const r = await api(`/c/${college}/labs/${labId}/approve`, { method: 'POST' }); toast(`Approved. ${r.approved} equipment published.`); load() } catch (e) { toast(e.message, 'error') } finally { setBusy(false) }
   }

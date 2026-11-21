@@ -6,9 +6,11 @@ export async function api(path, { method = 'GET', body } = {}) {
   const headers = { 'Content-Type': 'application/json' }
   const t = getToken()
   if (t) headers.Authorization = `Bearer ${t}`
-  const res = await fetch(`/api${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined })
+  let res
+  try { res = await fetch(`/api${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined }) }
+  catch { throw new Error('We could not reach the server. Please check your internet connection and try again.') }
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw Object.assign(new Error(data.error || 'Request failed'), { status: res.status, fields: data.fields })
+  if (!res.ok) throw Object.assign(new Error(data.error || 'Something went wrong. Please try again.'), { status: res.status, fields: data.fields })
   return data
 }
 

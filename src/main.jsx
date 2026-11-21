@@ -6,16 +6,18 @@ import './styles/base.css'
 import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './core/auth'
-import { ToastProvider } from './ui'
+import { DialogProvider, ToastProvider } from './ui'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <ToastProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </ToastProvider>
+      <DialogProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </ToastProvider>
+      </DialogProvider>
     </BrowserRouter>
   </StrictMode>,
 )

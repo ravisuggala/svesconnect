@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { FileText, FlaskConical, Info, Pencil, Plus } from 'lucide-react'
-import { Badge, Button, Card, EmptyState, Input, Modal, Select, Table, useToast } from '../../ui'
+import { Badge, Button, Card, EmptyState, Input, Modal, Select, Table, useDialog, useToast } from '../../ui'
 import { useAuth } from '../../core/auth'
 import { api } from '../../core/api'
 import { STATUS } from './spec'
@@ -12,6 +12,7 @@ export default function LabHome() {
   const { college } = useParams()
   const { user } = useAuth()
   const toast = useToast()
+  const dialog = useDialog()
   const nav = useNavigate()
   const [lab, setLab] = useState(null)
   const [equipment, setEquipment] = useState([])
@@ -42,7 +43,7 @@ export default function LabHome() {
   const create = async (ev) => {
     ev.preventDefault(); setErrors({})
     try { const r = await api(`/c/${college}/labs/${lab.id}/equipment`, { method: 'POST', body: add }); setAdd(null); toast('Added. Now add its details, one step at a time.'); nav(`/c/${college}/lab/equipment/${r.id}/fill`) }
-    catch (e) { setErrors(e.fields || { form: e.message }) }
+    catch (e) { setErrors(e.fields || { form: e.message }); dialog.warning(e.message, 'Please check') }
   }
 
   const columns = [

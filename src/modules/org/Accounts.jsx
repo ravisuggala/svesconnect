@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { KeyRound, Pencil, Plus, UserCheck, UserX } from 'lucide-react'
-import { Badge, Button, EmptyState, Input, Modal, Table, useToast } from '../../ui'
+import { Badge, Button, EmptyState, Input, Modal, Table, useDialog, useToast } from '../../ui'
 import { useAuth } from '../../core/auth'
 import { api } from '../../core/api'
 
@@ -17,6 +17,7 @@ export default function Accounts({ kind }) {
   const { college } = useParams()
   const { user } = useAuth()
   const toast = useToast()
+  const dialog = useDialog()
   const k = KINDS[kind]
   const [data, setData] = useState({ users: [], college: null })
   const [loading, setLoading] = useState(true)
@@ -52,7 +53,7 @@ export default function Accounts({ kind }) {
     } catch (err) { setErrors(err.fields || { form: err.message }) } finally { setBusy(false) }
   }
   const act = async (u, action) => {
-    if (action === 'reset' && !window.confirm(`Reset the password of ${u.email} to the default?`)) return
+    if (action === 'reset' && !(await dialog.confirm({ title: 'Reset password?', message: `The password of ${u.email} will go back to the default password.`, confirmText: 'Reset password', tone: 'warning' }))) return
     try {
       const r = await api(`/c/${college}/users/${u.id}`, { method: 'PATCH', body: { action } })
       if (action === 'reset') setCreated({ email: u.email, password: r.initialPassword, reset: true })

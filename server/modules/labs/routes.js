@@ -125,16 +125,39 @@ collegeRouter.patch("/labs/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
+// ---------- equipment catalogue (name + purpose, shared by the whole college) ----------
+const nameKey = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 255);
+
+collegeRouter.get("/catalog", async (req, res) => {
+  const k = nameKey(req.query.q);
+  if (!k) return res.json({ items: [] });
+  const like = k.replace(/[\\%_]/g, "\\$&");
+  const [rows] = await pool.query(
+    `SELECT c.id, c.name, c.purpose, (SELECT COUNT(DISTINCT e.lab_id) FROM equipment e WHERE e.college_id = c.college_id AND LOWER(e.name) = LOWER(c.name)) AS labs
+       FROM equipment_catalog c WHERE c.college_id = ? AND (c.name_key LIKE ? OR c.name_key LIKE ?)
+      ORDER BY (c.name_key LIKE ?) DESC, c.name LIMIT 8`,
+    [req.college.id, `${like}%`, `% ${like}%`, `${like}%`]);
+  res.json({ items: rows.map((r) => ({ ...r, labs: Number(r.labs) || 0 })) });
+});
+
 collegeRouter.post("/labs/:id/equipment", async (req, res) => {
   const lab = await loadLab(req, req.params.id);
   if (!lab || !(req.me.role === "lab_incharge" && req.me.lab_id === lab.id)) return res.status(403).json({ error: "Only the lab coordinator can add equipment." });
-  const { templateKey, name } = req.body || {};
-  const tpl = findTemplate(templateKey);
-  if (!tpl) return res.status(400).json({ error: "Choose an equipment type.", fields: { templateKey: "Choose an equipment type." } });
-  const nm = String(name || "").trim().slice(0, 255);
+  const { templateKey, name, purpose } = req.body || {};
+  const tpl = findTemplate(templateKey || "general");
+  let nm = String(name || "").trim().replace(/\s+/g, " ").slice(0, 255);
   if (nm.length < 2) return res.status(400).json({ error: "Enter the equipment name.", fields: { name: "Enter the equipment name." } });
+  // The college catalogue: reuse an existing name (keeps spelling the same everywhere) or add this one for everybody.
+  const key = nameKey(nm);
+  const [found] = await pool.query("SELECT id, name, purpose FROM equipment_catalog WHERE college_id = ? AND name_key = ?", [req.college.id, key]);
+  const known = found[0];
+  let why = String(purpose || "").trim().slice(0, 1000);
+  if (known) { nm = known.name; if (!why) why = known.purpose || ""; }
+  if (why.length < 3) return res.status(400).json({ error: "Tell us what this equipment is used for.", fields: { purpose: "Write a short line on what it is used for." } });
+  if (!known) await pool.query("INSERT IGNORE INTO equipment_catalog (college_id, name, name_key, purpose, created_by, department) VALUES (?,?,?,?,?,?)", [req.college.id, nm, key, why, req.me.id, lab.department]);
+  else if (!known.purpose) await pool.query("UPDATE equipment_catalog SET purpose = ? WHERE id = ?", [why, known.id]);
   // Prefill what we already know so the coordinator is not asked twice.
-  const data = { name: nm, contact_name: req.me.name, contact_email: req.me.email, contact_department: lab.department, building: lab.building || "", floor: lab.floor || "", room: lab.room || "", accessibility: lab.accessibility || "" };
+  const data = { name: nm, description: why, contact_name: req.me.name, contact_email: req.me.email, contact_department: lab.department, building: lab.building || "", floor: lab.floor || "", room: lab.room || "", accessibility: lab.accessibility || "" };
   const [r] = await pool.query(
     "INSERT INTO equipment (college_id, lab_id, department, template_key, name, category, data, status, created_by) VALUES (?,?,?,?,?,?,?, 'draft', ?)",
     [req.college.id, lab.id, lab.department, tpl.key, nm, tpl.label, JSON.stringify(data), req.me.id]);

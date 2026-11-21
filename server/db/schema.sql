@@ -31,6 +31,19 @@ CREATE TABLE IF NOT EXISTS users (
   KEY idx_users_scope (college_id, role, department)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Equipment catalogue: one shared list of equipment names (with purpose) per college. Anyone in the college can add a name once; every lab then picks it from the type-ahead.
+CREATE TABLE IF NOT EXISTS equipment_catalog (
+  id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  college_id  INT UNSIGNED NOT NULL,
+  name        VARCHAR(255) NOT NULL,
+  name_key    VARCHAR(255) NOT NULL,
+  purpose     TEXT,
+  created_by  INT UNSIGNED NULL,
+  department  VARCHAR(120),
+  created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_catalog_name (college_id, name_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Labs: one per lab coordinator, organised as college > department > lab. Labs are never mixed when published.
 CREATE TABLE IF NOT EXISTS labs (
   id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

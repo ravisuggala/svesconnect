@@ -25,3 +25,10 @@
 .thumb-empty { display:flex; align-items:center; justify-content:center; color:var(--c-muted); }
 
 .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,260px)); gap:var(--s-3); margin:var(--s-4) 0; }
+
+/* Equipment name type-ahead */
+.suggest { position: relative; }
+.suggest-list { position: absolute; z-index: 30; left: 0; right: 0; top: 100%; margin: 2px 0 0; padding: var(--s-1); list-style: none; background: var(--c-surface, #fff); border: 1px solid var(--c-border); border-radius: var(--r-md); box-shadow: var(--shadow-md); max-height: 16rem; overflow-y: auto; }
+.suggest-list li { display: flex; flex-direction: column; gap: 2px; padding: var(--s-2) var(--s-3); border-radius: var(--r-sm); cursor: pointer; }
+.suggest-list li:hover, .suggest-list li.on { background: var(--c-primary-soft); }
+.suggest-list li.new { color: var(--c-text); border-top: 1px dashed var(--c-border); border-radius: 0; margin-top: var(--s-1); }

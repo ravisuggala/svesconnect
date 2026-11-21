@@ -59,16 +59,16 @@ async function build() {
     `SELECT l.id, l.college_id, l.department, l.name, l.description, l.building, l.floor, l.room, l.accessibility, c.code AS college_code, c.name AS college_name, u.name AS coordinator
        FROM labs l JOIN colleges c ON c.id = l.college_id LEFT JOIN users u ON u.id = l.incharge_user_id`);
   const [eq] = await pool.query(
-    `SELECT e.id, e.lab_id, e.college_id, e.department, e.template_key, e.name, e.status, e.data, l.name AS lab_name, c.code AS college_code, c.name AS college_name
-       FROM equipment e JOIN labs l ON l.id = e.lab_id JOIN colleges c ON c.id = e.college_id WHERE e.status IN ('approved', 'submitted')`);
+    `SELECT e.id, e.lab_id, e.college_id, e.department, e.template_key, e.name, e.status, COALESCE(e.pub_data, e.data) AS data, (e.pub_data IS NOT NULL) AS pub, l.name AS lab_name, c.code AS college_code, c.name AS college_name
+       FROM equipment e JOIN labs l ON l.id = e.lab_id JOIN colleges c ON c.id = e.college_id WHERE e.pub_data IS NOT NULL OR e.status IN ('approved', 'submitted')`);
   const out = [];
   const labStat = new Map();
   for (const e of eq) {
     const data = e.data ? JSON.parse(e.data) : {};
     const text = equipmentText(e, data);
-    out.push({ kind: "equipment", id: e.id, collegeId: e.college_id, collegeCode: e.college_code, department: e.department, labId: e.lab_id, status: e.status, publicOk: e.status === "approved",
+    out.push({ kind: "equipment", id: e.id, collegeId: e.college_id, collegeCode: e.college_code, department: e.department, labId: e.lab_id, status: e.status, publicOk: !!e.pub,
       title: e.name, subtitle: `${e.lab_name} · ${e.department} · ${e.college_code}`, snippet: String(data.description || data.key_features || "").slice(0, 180), text, lower: text.toLowerCase(), titleLower: e.name.toLowerCase() });
-    const ls = labStat.get(e.lab_id) || { approved: 0, pending: 0, names: [] }; ls[e.status === "approved" ? "approved" : "pending"]++; if (ls.names.length < 25) ls.names.push(e.name); labStat.set(e.lab_id, ls);
+    const ls = labStat.get(e.lab_id) || { approved: 0, pending: 0, names: [] }; ls[e.pub ? "approved" : "pending"]++; if (ls.names.length < 25) ls.names.push(e.name); labStat.set(e.lab_id, ls);
   }
   const byDept = new Map();
   for (const l of labs) {

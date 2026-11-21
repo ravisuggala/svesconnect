@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Check, FileText, Pencil, Trash2, X } from 'lucide-react'
 import { Badge, Button, Card, Loader, Modal, useToast } from '../../ui'
 import { api, openFile } from '../../core/api'
+import { useAuth } from '../../core/auth'
 import EquipmentSections from './EquipmentSections'
 import { STATUS } from './spec'
 
@@ -13,6 +14,7 @@ export default function EquipmentView() {
   const { college, id } = useParams()
   const nav = useNavigate()
   const toast = useToast()
+  const { user } = useAuth()
   const [r, setR] = useState(null)
   const [reject, setReject] = useState(null)
   const [error, setError] = useState('')
@@ -34,7 +36,7 @@ export default function EquipmentView() {
   return (
     <div className="fade-up" style={{ maxWidth: 900 }}>
       <div className="row"><Badge tone="primary">{e.department} · {e.labName}</Badge><Badge tone={STATUS[e.status].tone}>{STATUS[e.status].label}</Badge><span className="spacer" />
-        {can.edit && <Button as={Link} to={`/c/${college}/lab/equipment/${e.id}/fill`}><Pencil size={14} /> {e.status === 'rejected' ? 'Fix & resubmit' : 'Continue editing'}</Button>}
+        {can.edit && <Button as={Link} to={user.role === 'lab_incharge' ? `/c/${college}/lab/equipment/${e.id}/fill` : `/c/${college}/lab-details/equipment/${e.id}/edit`}><Pencil size={14} /> Edit</Button>}
         {can.delete && <Button variant="ghost" onClick={remove}><Trash2 size={14} /> Delete draft</Button>}</div>
       <h2 style={{ margin: 'var(--s-3) 0 0' }}>{e.name}</h2>
       <p className="muted">{spec.template?.label}</p>

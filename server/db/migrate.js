@@ -33,6 +33,10 @@ async function upgradeEquipment() {
   for (const [t, col, def] of [["users", "event_id", "INT UNSIGNED NULL"], ["labs", "contact_name", "VARCHAR(160)"], ["labs", "contact_email", "VARCHAR(190)"], ["labs", "contact_phone", "VARCHAR(40)"], ["colleges", "address", "VARCHAR(300)"]])
     if (!(await columnExists(t, col))) await pool.query(`ALTER TABLE ${t} ADD COLUMN ${col} ${def}`);
   if (!(await columnExists("equipment_catalog", "type_key"))) await pool.query("ALTER TABLE equipment_catalog ADD COLUMN type_key VARCHAR(40) NULL");
+  // The published (last approved) copy of each equipment; public pages read this, so edits wait for the HOD's approval.
+  if (!(await columnExists("equipment", "pub_data"))) await pool.query("ALTER TABLE equipment ADD COLUMN pub_data LONGTEXT NULL");
+  await pool.query("UPDATE equipment SET pub_data = data WHERE status IN ('approved', 'verified') AND pub_data IS NULL AND data IS NOT NULL");
+  for (const [col, def] of [["approved_at", "TIMESTAMP NULL"], ["approved_by", "INT UNSIGNED NULL"]]) if (!(await columnExists("labs", col))) await pool.query(`ALTER TABLE labs ADD COLUMN ${col} ${def}`);
   if (!(await indexExists("equipment", "idx_equipment_lab"))) await pool.query("ALTER TABLE equipment ADD KEY idx_equipment_lab (lab_id, status)");
 }
 

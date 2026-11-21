@@ -19,7 +19,7 @@ export default function LabDetail() {
   return (
     <div className="fade-up">
       <Link to={`/c/${college}/lab-details`} className="row"><ArrowLeft size={14} /> All labs</Link>
-      <div className="row" style={{ marginTop: 'var(--s-3)' }}><h2 style={{ margin: 0 }}>{r?.lab.name || 'Lab'}</h2><span className="spacer" /><Link to={`/c/${college}/lab-details/${labId}/record`} className="btn btn-ghost"><FileText size={14} /> Lab record (PDF)</Link></div>
+      <div className="row" style={{ marginTop: 'var(--s-3)' }}><h2 style={{ margin: 0 }}>{r?.lab.name || 'Lab'}</h2><span className="spacer" /><Link to={`/c/${college}/lab-details/${labId}/review`} className="btn btn-primary">Review & approve</Link><Link to={`/c/${college}/lab-details/${labId}/record`} className="btn btn-ghost"><FileText size={14} /> Lab record (PDF)</Link></div>
       {r && <p className="muted">{r.lab.department}{r.lab.description ? ` · ${r.lab.description}` : ''}</p>}
       <Table columns={columns} rows={r?.equipment || []} loading={!r} />
     </div>

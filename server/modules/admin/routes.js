@@ -25,7 +25,7 @@ router.get("/summary", async (req, res) => {
        (SELECT COUNT(*) FROM labs l WHERE l.college_id = c.id) AS labs,
        (SELECT COUNT(*) FROM equipment q WHERE q.college_id = c.id) AS equipment,
        (SELECT COUNT(*) FROM equipment q WHERE q.college_id = c.id AND q.status = 'submitted') AS awaiting,
-       (SELECT COUNT(*) FROM equipment q WHERE q.college_id = c.id AND q.status = 'approved') AS approved,
+       (SELECT COUNT(*) FROM equipment q WHERE q.college_id = c.id AND q.pub_data IS NOT NULL) AS approved,
        (SELECT COUNT(*) FROM events e WHERE e.college_id = c.id) AS events,
        (SELECT COUNT(*) FROM events e WHERE e.college_id = c.id AND e.status = 'published') AS publishedEvents,
        (SELECT COUNT(*) FROM event_files f JOIN events e ON e.id = f.event_id WHERE e.college_id = c.id) AS files
@@ -38,7 +38,7 @@ router.get("/summary", async (req, res) => {
 // ---- every lab and event, all colleges ----
 router.get("/labs", async (req, res) => {
   const [rows] = await pool.query(
-    `SELECT l.id, c.code AS college, l.department, l.name, u.email AS coordinator, COUNT(q.id) AS total, SUM(q.status = 'submitted') AS awaiting, SUM(q.status = 'approved') AS approved
+    `SELECT l.id, c.code AS college, l.department, l.name, u.email AS coordinator, COUNT(q.id) AS total, SUM(q.status = 'submitted') AS awaiting, SUM(q.pub_data IS NOT NULL) AS approved
        FROM labs l JOIN colleges c ON c.id = l.college_id LEFT JOIN users u ON u.id = l.incharge_user_id LEFT JOIN equipment q ON q.lab_id = l.id
       GROUP BY l.id, c.code, u.email ORDER BY c.sort_order, l.department, l.name`);
   res.json({ labs: rows.map((r) => ({ ...r, total: n(r.total), awaiting: n(r.awaiting), approved: n(r.approved) })) });

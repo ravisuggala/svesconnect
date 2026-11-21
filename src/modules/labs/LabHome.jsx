@@ -48,8 +48,8 @@ export default function LabHome() {
   const columns = [
     { key: 'name', label: 'Equipment', render: (e) => <Link to={`/c/${college}/equipment/${e.id}`}><b>{e.name}</b></Link> },
     { key: 'templateKey', label: 'Type', render: (e) => templates.find((t) => t.key === e.templateKey)?.label || '' },
-    { key: 'status', label: 'Status', render: (e) => <Badge tone={STATUS[e.status].tone}>{STATUS[e.status].label}</Badge> },
-    { key: 'go', label: '', render: (e) => (['draft', 'rejected'].includes(e.status) ? <Link to={`/c/${college}/lab/equipment/${e.id}/fill`}>{e.status === 'draft' ? 'Continue' : 'Make changes'}</Link> : <Link to={`/c/${college}/equipment/${e.id}`}>View</Link>) },
+    { key: 'status', label: 'Status', render: (e) => <><Badge tone={STATUS[e.status].tone}>{e.published && e.status === 'draft' ? 'Editing' : STATUS[e.status].label}</Badge>{e.published && e.status !== 'approved' && <div className="muted" style={{ fontSize: 12 }}>Published version is still live</div>}</> },
+    { key: 'go', label: '', render: (e) => <span className="row" style={{ gap: 12 }}><Link to={`/c/${college}/lab/equipment/${e.id}/fill`}>{e.status === 'draft' ? 'Continue' : e.status === 'rejected' ? 'Make changes' : 'Edit'}</Link><Link to={`/c/${college}/equipment/${e.id}`}>View</Link></span> },
   ]
 
   if (!loading && !lab) return <EmptyState title="No lab linked to your account" icon={FlaskConical}>Ask your HOD to re-create your coordinator account.</EmptyState>

@@ -55,3 +55,5 @@
   .record { padding:0 !important; max-width:none !important; } .record .eq-sec { box-shadow:none; border-color:#ccc; break-inside:avoid; }
   a { color:inherit; text-decoration:none; }
 }
+.only-print { display:none; } .rt { font-size:13px; margin-top:var(--s-2); } .rt th { background:var(--c-surface-2); }
+@media print { .only-print { display:block !important; } .rt { font-size:11px; } }

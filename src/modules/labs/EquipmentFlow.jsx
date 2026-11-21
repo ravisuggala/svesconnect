@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Check, CircleAlert, Info, Plus, Trash2, Upload, X } from 'lucide-react'
 import { Badge, Button, Card, Field, Loader } from '../../ui'
 import { api, fileToBase64, openFile } from '../../core/api'
+import { useAuth } from '../../core/auth'
 import { empty, fileKindVisible, visible } from './spec'
 import { useToast } from '../../ui'
 import './labs.css'
@@ -11,6 +12,8 @@ import './labs.css'
 export default function EquipmentFlow() {
   const { college, id } = useParams()
   const nav = useNavigate()
+  const { user } = useAuth()
+  const owner = user.role === 'lab_incharge'
   const toast = useToast()
   const [state, setState] = useState(null)
   const [data, setData] = useState({})
@@ -75,7 +78,7 @@ export default function EquipmentFlow() {
   const go = async (to) => { setBusy(true); const ok = await persist(); if (ok || to) setCursor(to); setBusy(false) }
   const next = () => go(idx + 1 >= questions.length ? 'review' : questions[idx + 1].key)
   const back = () => idx > 0 && go(questions[at === 'review' ? questions.length - 1 : idx - 1].key)
-  const exit = async () => { setBusy(true); if (await persist()) nav(`/c/${college}/lab`); else toast('We could not save just now. Please check your internet connection and try again.', 'error'); setBusy(false) }
+  const exit = async () => { setBusy(true); if (await persist()) nav(owner ? `/c/${college}/lab` : `/c/${college}/lab-details/${state.equipment.labId}/review`); else toast('We could not save just now. Please check your internet connection and try again.', 'error'); setBusy(false) }
   const submit = async () => {
     setBusy(true)
     try { if (!(await persist())) { toast('We could not save just now. Please check your internet connection and try again.', 'error'); return } await api(`/c/${college}/equipment/${id}/submit`, { method: 'POST' }); toast('Sent to your HOD for approval'); nav(`/c/${college}/lab`) }
@@ -108,6 +111,7 @@ export default function EquipmentFlow() {
         <span className={`savebadge ${save}`} role="status" aria-live="polite">{save === 'saving' ? 'Saving…' : save === 'error' ? 'Not saved yet. Your answers are still here; we will keep trying.' : <><Check size={13} /> All changes saved</>}</span>
         <Button variant="ghost" size="sm" onClick={exit} disabled={busy}><X size={14} /> Save & exit</Button></div>
       <h2 style={{ margin: 'var(--s-3) 0' }}>{data.name}</h2>
+      {state.equipment.published && <p className="helpbox"><Info size={15} /> {owner ? 'This equipment is already published. You can change anything: the public keeps seeing the approved version until your HOD approves your changes. When you finish, press “Send to HOD”.' : 'This equipment is published. Your changes go live when you approve the lab.'}</p>}
       <div className="chips">{sections.filter((s) => questions.some((x) => x.section.key === s.key)).map((s) => <button key={s.key} className={`chip ${curSection === s.key ? 'on' : ''}`} onClick={() => jump(s.key)}>{s.title.replace(/ \(all optional\)/, '')}</button>)}
         <button className={`chip ${at === 'review' ? 'on' : ''}`} onClick={() => go('review')}>Review & submit</button></div>
       <div className="bar" aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>
@@ -121,7 +125,7 @@ export default function EquipmentFlow() {
             <ul className="stepsum">{sections.filter((s) => questions.some((x) => x.section.key === s.key)).map((s) => { const qs = questions.filter((x) => x.section.key === s.key && x.field); const done = qs.filter((x) => !empty(data[x.field.key])).length; return <li key={s.key}><button type="button" className="linklike" onClick={() => jump(s.key)}>{s.title}</button><span className="muted">{qs.length ? `${done} of ${qs.length} answered` : 'uploads only'}</span></li> })}</ul>
             <p className="muted">You can still go back to any step above. Nothing is lost if you leave now: open the equipment from your list and choose <b>Continue</b>.</p>
             <div className="flow-nav"><Button variant="ghost" onClick={back} disabled={busy}><ArrowLeft size={16} /> Back</Button>
-              <Button onClick={submit} disabled={busy}><Check size={16} /> Send to HOD for approval</Button></div>
+              {owner ? <Button onClick={submit} disabled={busy}><Check size={16} /> Send to HOD</Button> : <Button onClick={exit} disabled={busy}><Check size={16} /> Done, back to lab review</Button>}</div>
           </>
         ) : q && (
           <>

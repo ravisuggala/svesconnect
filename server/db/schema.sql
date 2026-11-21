@@ -56,6 +56,19 @@ CREATE TABLE IF NOT EXISTS equipment_summaries (
   PRIMARY KEY (college_id, name_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Who changed what on an equipment record, and approvals (shown to the in-charge and the HOD).
+CREATE TABLE IF NOT EXISTS equipment_history (
+  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  equipment_id  INT UNSIGNED NOT NULL,
+  user_id       INT UNSIGNED NULL,
+  user_name     VARCHAR(160),
+  role          VARCHAR(40),
+  action        VARCHAR(40) NOT NULL,
+  detail        TEXT,
+  created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_history_equipment (equipment_id, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Labs: one per lab coordinator, organised as college > department > lab. Labs are never mixed when published.
 CREATE TABLE IF NOT EXISTS labs (
   id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

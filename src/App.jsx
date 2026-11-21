@@ -17,6 +17,8 @@ import EquipmentView from './modules/labs/EquipmentView'
 import LabsOverview from './modules/labs/LabsOverview'
 import LabDetail from './modules/labs/LabDetail'
 import LabRecord from './modules/labs/LabRecord'
+import LabReview from './modules/labs/LabReview'
+import { EquipmentReport, LabsReport } from './modules/labs/Reports'
 import { CollegeEquipment, CollegeEquipmentDetail, PublicLabRecord } from './modules/labs/PublicEquipment'
 import { ExploreCollege, ExploreColleges, ExploreDepartment, ExploreEquipment, ExploreLab } from './modules/labs/Explore'
 import AdminConsole from './modules/admin/AdminConsole'
@@ -66,6 +68,10 @@ export default function App() {
             <Route path="lab" element={<RequireAuth roles={['lab_incharge']}><LabHome /></RequireAuth>} />
             <Route path="lab/equipment/:id/fill" element={<RequireAuth roles={['lab_incharge']}><EquipmentFlow /></RequireAuth>} />
             <Route path="lab-details" element={<RequireAuth roles={['hod', 'principal', 'admin']}><LabsOverview /></RequireAuth>} />
+            <Route path="lab-details/:labId/review" element={<RequireAuth roles={['hod', 'principal', 'admin']}><LabReview /></RequireAuth>} />
+            <Route path="lab-details/equipment/:id/edit" element={<RequireAuth roles={['hod', 'admin']}><EquipmentFlow /></RequireAuth>} />
+            <Route path="report/labs" element={<RequireAuth roles={['hod', 'principal', 'admin']}><LabsReport /></RequireAuth>} />
+            <Route path="report/equipment" element={<RequireAuth roles={['hod', 'principal', 'admin']}><EquipmentReport /></RequireAuth>} />
             <Route path="lab/record" element={<RequireAuth roles={['lab_incharge']}><LabRecord /></RequireAuth>} />
             <Route path="lab-details/:labId/record" element={<RequireAuth roles={['hod', 'principal', 'admin']}><LabRecord /></RequireAuth>} />
             <Route path="lab-details/:labId" element={<RequireAuth roles={['hod', 'principal', 'admin', 'lab_incharge']}><LabDetail /></RequireAuth>} />

@@ -85,6 +85,20 @@ async function loadEquipment(req, id) {
 }
 const isOwner = (me, eq) => me.role === "lab_incharge" && me.lab_id === eq.lab_id;
 const editable = (eq) => ["draft", "rejected"].includes(eq.status);
+// The in-charge of the lab may edit at any time (changes to published equipment wait for the HOD); the HOD of the department and the administrator may edit too.
+const canEdit = (me, eq) => isOwner(me, eq) || me.role === "admin" || (me.role === "hod" && eq.lab_department === me.department);
+const ROLE_LABEL = { lab_incharge: "Lab in-charge", hod: "HOD", admin: "Administrator", principal: "Principal" };
+async function logHistory(eqId, me, action, detail) {
+  await pool.query("INSERT INTO equipment_history (equipment_id, user_id, user_name, role, action, detail) VALUES (?,?,?,?,?,?)", [eqId, me.id, me.name || "", ROLE_LABEL[me.role] || me.role, action, String(detail || "").slice(0, 1500) || null]);
+}
+// Autosave edits are merged into one history line per person per 30 minutes.
+async function logEdit(eqId, me, labels) {
+  const [[last]] = await pool.query("SELECT id, detail FROM equipment_history WHERE equipment_id = ? AND user_id = ? AND action = 'edited' AND created_at > (NOW() - INTERVAL 30 MINUTE) ORDER BY id DESC LIMIT 1", [eqId, me.id]);
+  if (last) {
+    const merged = [...new Set([...(last.detail ? last.detail.split(", ") : []), ...labels])].join(", ");
+    await pool.query("UPDATE equipment_history SET detail = ?, created_at = NOW() WHERE id = ?", [merged.slice(0, 1500), last.id]);
+  } else await logHistory(eqId, me, "edited", labels.join(", "));
+}
 
 // ---------- college-scoped router ----------
 const collegeRouter = express.Router({ mergeParams: true });
@@ -97,7 +111,7 @@ collegeRouter.get("/labs", async (req, res) => {
     `SELECT l.id, l.department, l.name, l.description, l.building, l.floor, l.room, l.accessibility,
             u.name AS coordinator, u.email AS coordinatorEmail,
             COUNT(e.id) AS total, SUM(e.status = 'draft') AS draft, SUM(e.status = 'submitted') AS submitted,
-            SUM(e.status = 'approved') AS approved, SUM(e.status = 'rejected') AS rejected
+            SUM(e.pub_data IS NOT NULL) AS approved, SUM(e.status = 'rejected') AS rejected
        FROM labs l LEFT JOIN users u ON u.id = l.incharge_user_id LEFT JOIN equipment e ON e.lab_id = l.id
       WHERE ${sc.where} GROUP BY l.id, u.name, u.email ORDER BY l.department, l.name`, sc.params);
   res.json({ labs: rows.map((r) => ({ ...r, total: n(r.total), draft: n(r.draft), submitted: n(r.submitted), approved: n(r.approved), rejected: n(r.rejected) })) });
@@ -109,7 +123,7 @@ collegeRouter.get("/overview", async (req, res) => {
   const sc = labScope(req.me, req.college);
   if (!sc) return res.json({ departments: [], totals: {}, types: [] });
   const [labs] = await pool.query(`SELECT l.id, l.department FROM labs l WHERE ${sc.where}`, sc.params);
-  const [rows] = await pool.query(`SELECT l.department, e.lab_id, e.status, e.template_key, e.data FROM equipment e JOIN labs l ON l.id = e.lab_id WHERE ${sc.where}`, sc.params);
+  const [rows] = await pool.query(`SELECT l.department, e.lab_id, e.status, e.template_key, e.data, e.pub_data FROM equipment e JOIN labs l ON l.id = e.lab_id WHERE ${sc.where}`, sc.params);
   const labels = Object.fromEntries(templateList().map((t) => [t.key, t.label]));
   const blank = (department) => ({ department, labs: 0, published: 0, awaiting: 0, sentBack: 0, drafts: 0, working: 0, notWorking: 0, highValue: 0, investmentLakhs: 0 });
   const depts = new Map(), types = new Map();
@@ -117,9 +131,9 @@ collegeRouter.get("/overview", async (req, res) => {
   for (const r of rows) {
     const d = depts.get(r.department) || blank(r.department); depts.set(r.department, d);
     if (r.status === "draft") d.drafts++; else if (r.status === "submitted") d.awaiting++; else if (r.status === "rejected") d.sentBack++;
-    if (r.status !== "approved") continue;
+    if (!r.pub_data) continue;
     d.published++;
-    const data = r.data ? JSON.parse(r.data) : {};
+    const data = JSON.parse(r.pub_data);
     if (data.current_status === "Working") d.working++; else if (data.current_status) d.notWorking++;
     const cost = n(data.equipment_cost_lakhs); d.investmentLakhs += cost; if (cost > 1.5) d.highValue++;
     types.set(labels[r.template_key] || "Other", (types.get(labels[r.template_key] || "Other") || 0) + 1);
@@ -133,7 +147,7 @@ collegeRouter.get("/overview", async (req, res) => {
 collegeRouter.get("/labs/:id", async (req, res) => {
   const lab = await loadLab(req, req.params.id);
   if (!lab) return res.status(404).json({ error: "Lab not found." });
-  const [rows] = await pool.query("SELECT id, name, template_key AS templateKey, status, review_note AS reviewNote, updated_at AS updatedAt FROM equipment WHERE lab_id = ? ORDER BY updated_at DESC", [lab.id]);
+  const [rows] = await pool.query("SELECT id, name, template_key AS templateKey, status, (pub_data IS NOT NULL) AS published, review_note AS reviewNote, updated_at AS updatedAt FROM equipment WHERE lab_id = ? ORDER BY updated_at DESC", [lab.id]);
   res.json({ lab, equipment: rows, templates: templateList(), categories: categoryList() });
 });
 
@@ -196,7 +210,64 @@ collegeRouter.get("/labs/:id/record", async (req, res) => {
   const [rows] = await pool.query("SELECT * FROM equipment WHERE lab_id = ? ORDER BY name", [lab.id]);
   const ids = rows.map((r) => r.id);
   const [files] = ids.length ? await pool.query("SELECT id, equipment_id, kind, original_name AS name, size FROM equipment_files WHERE equipment_id IN (?) ORDER BY id", [ids]) : [[]];
-  res.json({ lab, college: c, equipment: rows.map((r) => { const eq = parse(r); const spec = buildSpec(eq.template_key); return { id: eq.id, name: eq.name, status: eq.status, type: spec.template?.label, data: eq.data, sections: spec.sections.filter((s) => !s.files || s.fields.length), files: files.filter((f) => f.equipment_id === eq.id) }; }) });
+  const [hist] = ids.length ? await pool.query("SELECT equipment_id, user_name AS who, role, action, detail, created_at AS at FROM equipment_history WHERE equipment_id IN (?) ORDER BY id DESC", [ids]) : [[]];
+  res.json({ lab, college: c,
+    can: { approve: (req.me.role === "hod" && lab.department === req.me.department) || req.me.role === "admin", edit: req.me.role === "hod" || req.me.role === "admin" },
+    equipment: rows.map((r) => { const eq = parse(r); const spec = buildSpec(eq.template_key); return { id: eq.id, name: eq.name, status: eq.status, published: !!r.pub_data, reviewNote: eq.review_note, type: spec.template?.label, data: eq.data, sections: spec.sections.filter((s) => !s.files || s.fields.length), files: files.filter((f) => f.equipment_id === eq.id), history: hist.filter((h) => h.equipment_id === eq.id).slice(0, 6) }; }) });
+});
+
+// Final approval of a whole lab: everything the in-charge has sent (new equipment and changes) goes live together. Items sent back stay as they are.
+collegeRouter.post("/labs/:id/approve", async (req, res) => {
+  const lab = await loadLab(req, req.params.id);
+  if (!lab || !(req.me.role === "admin" || (req.me.role === "hod" && lab.department === req.me.department))) return res.status(403).json({ error: "Only the HOD of this department can approve the lab." });
+  const [ready] = await pool.query("SELECT id FROM equipment WHERE lab_id = ? AND status = 'submitted'", [lab.id]);
+  if (!ready.length) return res.status(400).json({ error: "Nothing is waiting for approval in this lab. The in-charge has to send equipment to the HOD first." });
+  await pool.query("UPDATE equipment SET status = 'approved', pub_data = data, approved_by = ?, approved_at = NOW(), review_note = NULL WHERE lab_id = ? AND status = 'submitted'", [req.me.id, lab.id]);
+  for (const r of ready) await logHistory(r.id, req.me, "approved", "Lab approved");
+  await pool.query("UPDATE labs SET approved_at = NOW(), approved_by = ? WHERE id = ?", [req.me.id, lab.id]);
+  searchIndex().touch();
+  res.json({ ok: true, approved: ready.length });
+});
+
+// ---------- internal reports (HOD: own department, Principal/administrator: whole college). Finance is included here and never public. ----------
+const costOf = (d) => (Number.isFinite(Number(d.total_cost)) && d.total_cost !== "" && d.total_cost !== undefined ? Number(d.total_cost) : d.equipment_cost_lakhs ? Math.round(Number(d.equipment_cost_lakhs) * 100000) : null);
+const unitsOf = (d) => Math.max(1, Math.floor(n(d.quantity) || 1));
+const workingOf = (d, q) => (d.units_working !== undefined ? n(d.units_working) : d.current_status === "Working" ? q : null);
+function reportRow(r) {
+  const d = r.data ? JSON.parse(r.data) : {};
+  const q = unitsOf(d);
+  return { id: r.id, name: r.name, type: findTemplate(r.template_key)?.label || "", status: r.status, published: !!r.pub_data, department: r.department, lab: r.lab_name, labId: r.lab_id,
+    location: [r.building, r.floor && `Floor ${r.floor}`, r.room && `Room ${r.room}`].filter(Boolean).join(", "), quantity: q, working: workingOf(d, q), brand: [d.manufacturer, d.model].filter(Boolean).join(" "), year: d.year_bought || "", cost: costOf(d), purpose: d.description || "" };
+}
+const reportSql = (sc) => `SELECT e.id, e.name, e.template_key, e.status, e.data, e.pub_data, l.id AS lab_id, l.name AS lab_name, l.department, l.building, l.floor, l.room
+  FROM equipment e JOIN labs l ON l.id = e.lab_id WHERE ${sc.where} ORDER BY l.department, l.name, e.name`;
+
+collegeRouter.get("/report/labs", async (req, res) => {
+  if (!["hod", "principal", "admin"].includes(req.me.role)) return res.status(403).json({ error: "Not allowed." });
+  const sc = labScope(req.me, req.college);
+  if (!sc) return res.json({ labs: [], departments: [] });
+  const dept = String(req.query.department || "");
+  const [labs] = await pool.query(`SELECT l.id, l.department, l.name, l.description, l.building, l.floor, l.room, l.accessibility, l.approved_at AS approvedAt, u.name AS coordinator, u.email AS coordinatorEmail
+    FROM labs l LEFT JOIN users u ON u.id = l.incharge_user_id WHERE ${sc.where} ORDER BY l.department, l.name`, sc.params);
+  const [rows] = await pool.query(reportSql(sc), sc.params);
+  const items = rows.map(reportRow);
+  const out = labs.filter((l) => !dept || l.department === dept).map((l) => ({ ...l, equipment: items.filter((i) => i.labId === l.id) }));
+  res.json({ college: { name: req.college.name }, departments: [...new Set(labs.map((l) => l.department))], department: dept, labs: out });
+});
+
+collegeRouter.get("/report/equipment", async (req, res) => {
+  if (!["hod", "principal", "admin"].includes(req.me.role)) return res.status(403).json({ error: "Not allowed." });
+  const sc = labScope(req.me, req.college);
+  if (!sc) return res.json({ groups: [], types: [], names: [] });
+  const [rows] = await pool.query(reportSql(sc), sc.params);
+  const all = rows.map(reportRow);
+  const types = [...new Set(all.map((i) => i.type))].sort();
+  const names = [...new Set(all.map((i) => i.name))].sort();
+  const q = nameKey(req.query.q), type = String(req.query.type || "");
+  const items = all.filter((i) => (!type || i.type === type) && (!q || nameKey(`${i.name} ${i.type} ${i.brand} ${i.purpose}`).includes(q)));
+  const map = new Map();
+  for (const i of items) { const k = nameKey(i.name); const g = map.get(k) || { name: i.name, type: i.type, units: 0, working: 0, workingKnown: true, cost: 0, rows: [] }; g.units += i.quantity; if (i.working === null) g.workingKnown = false; else g.working += i.working; g.cost += i.cost || 0; g.rows.push(i); map.set(k, g); }
+  res.json({ college: { name: req.college.name }, types, names, groups: [...map.values()].map((g) => ({ ...g, working: g.workingKnown ? g.working : null })).sort((a, b) => a.name.localeCompare(b.name)) });
 });
 
 collegeRouter.get("/equipment/:id", async (req, res) => {
@@ -205,24 +276,32 @@ collegeRouter.get("/equipment/:id", async (req, res) => {
   const [files] = await pool.query("SELECT id, kind, original_name AS name, size FROM equipment_files WHERE equipment_id = ? ORDER BY id", [eq.id]);
   const spec = buildSpec(eq.template_key);
   res.json({
-    equipment: { id: eq.id, name: eq.name, status: eq.status, templateKey: eq.template_key, labId: eq.lab_id, labName: eq.lab_name, department: eq.lab_department, reviewNote: eq.review_note, data: eq.data, submittedAt: eq.submitted_at, verifiedAt: eq.verified_at, approvedAt: eq.approved_at },
+    equipment: { id: eq.id, name: eq.name, status: eq.status, published: !!eq.pub_data, templateKey: eq.template_key, labId: eq.lab_id, labName: eq.lab_name, department: eq.lab_department, reviewNote: eq.review_note, data: eq.data, submittedAt: eq.submitted_at, verifiedAt: eq.verified_at, approvedAt: eq.approved_at },
     files, spec,
-    can: { edit: isOwner(req.me, eq) && editable(eq), review: reviewAction(req.me, eq), delete: req.me.role === "admin" || (isOwner(req.me, eq) && eq.status === "draft") },
+    can: { edit: canEdit(req.me, eq), review: reviewAction(req.me, eq), delete: req.me.role === "admin" || (isOwner(req.me, eq) && eq.status === "draft" && !eq.pub_data) },
   });
 });
 
 collegeRouter.patch("/equipment/:id", async (req, res) => {
   const eq = await loadEquipment(req, req.params.id);
   if (!eq) return res.status(404).json({ error: "Equipment not found." });
-  if (!isOwner(req.me, eq) || !editable(eq)) return res.status(403).json({ error: "This record has been sent to your HOD, so it cannot be changed now." });
+  if (!canEdit(req.me, eq)) return res.status(403).json({ error: "You cannot change this record." });
   const spec = buildSpec(eq.template_key);
   const clean = cleanData(spec, req.body?.data);
   if ("name" in clean && String(clean.name).length < 2) delete clean.name;
   const data = derive(eq.template_key, { ...eq.data, ...clean });
+  const changed = Object.keys(clean).filter((k) => JSON.stringify(eq.data[k] ?? "") !== JSON.stringify(data[k] ?? ""));
+  if (!changed.length) return res.json({ ok: true });
+  // Editing something that is already with the HOD or published takes it back to "being edited"; the public keeps seeing the last approved version.
+  let status = eq.status;
+  if (isOwner(req.me, eq)) { if (status === "approved" || status === "submitted") status = "draft"; }
+  else if (status === "approved") status = "submitted";
   await pool.query(
-    "UPDATE equipment SET data = ?, name = ?, description = ?, specifications = ?, location = ? WHERE id = ?",
-    [JSON.stringify(data), data.name || eq.name, data.description || null, specText(data) || null, locationText(data) || null, eq.id]);
-  res.json({ ok: true });
+    "UPDATE equipment SET data = ?, name = ?, description = ?, specifications = ?, location = ?, status = ? WHERE id = ?",
+    [JSON.stringify(data), data.name || eq.name, data.description || null, specText(data) || null, locationText(data) || null, status, eq.id]);
+  const label = Object.fromEntries(spec.sections.flatMap((s2) => s2.fields.map((f) => [f.key, f.label])));
+  await logEdit(eq.id, req.me, changed.map((k) => label[k] || k));
+  res.json({ ok: true, status });
 });
 
 collegeRouter.post("/equipment/:id/submit", async (req, res) => {
@@ -232,6 +311,7 @@ collegeRouter.post("/equipment/:id/submit", async (req, res) => {
   const missing = missingRequired(buildSpec(eq.template_key), eq.data);
   if (missing.length) return res.status(400).json({ error: "Some required details are missing.", missing });
   await pool.query("UPDATE equipment SET status = 'submitted', review_note = NULL, submitted_at = NOW() WHERE id = ?", [eq.id]);
+  await logHistory(eq.id, req.me, "sent to HOD", "");
   searchIndex().touch();
   res.json({ ok: true });
 });
@@ -251,8 +331,10 @@ collegeRouter.post("/equipment/:id/review", async (req, res) => {
     const nt = String(note || "").trim();
     if (nt.length < 3) return res.status(400).json({ error: "Please tell the coordinator what to fix.", fields: { note: "Please explain what to fix." } });
     await pool.query("UPDATE equipment SET status = 'rejected', review_note = ? WHERE id = ?", [nt.slice(0, 2000), eq.id]);
+    await logHistory(eq.id, req.me, "sent back", nt);
   } else if (decision === "approve") {
-    await pool.query("UPDATE equipment SET status = 'approved', approved_by = ?, approved_at = NOW(), review_note = NULL WHERE id = ?", [req.me.id, eq.id]);
+    await pool.query("UPDATE equipment SET status = 'approved', pub_data = data, approved_by = ?, approved_at = NOW(), review_note = NULL WHERE id = ?", [req.me.id, eq.id]);
+    await logHistory(eq.id, req.me, "approved", "");
   } else return res.status(400).json({ error: "Unknown decision." });
   searchIndex().touch();
   res.json({ ok: true });
@@ -261,7 +343,7 @@ collegeRouter.post("/equipment/:id/review", async (req, res) => {
 collegeRouter.delete("/equipment/:id", async (req, res) => {
   const eq = await loadEquipment(req, req.params.id);
   if (!eq) return res.status(404).json({ error: "Equipment not found." });
-  if (req.me.role !== "admin" && (!isOwner(req.me, eq) || eq.status !== "draft")) return res.status(403).json({ error: "Only your own drafts can be deleted." });
+  if (req.me.role !== "admin" && (!isOwner(req.me, eq) || eq.status !== "draft" || eq.pub_data)) return res.status(403).json({ error: "Only your own drafts that were never published can be deleted." });
   const [files] = await pool.query("SELECT stored_name FROM equipment_files WHERE equipment_id = ?", [eq.id]);
   for (const f of files) fs.rm(path.join(STORAGE, f.stored_name), { force: true }, () => {});
   await pool.query("DELETE FROM equipment_files WHERE equipment_id = ?", [eq.id]);
@@ -274,7 +356,7 @@ collegeRouter.delete("/equipment/:id", async (req, res) => {
 collegeRouter.post("/equipment/:id/files", async (req, res) => {
   const eq = await loadEquipment(req, req.params.id);
   if (!eq) return res.status(404).json({ error: "Equipment not found." });
-  if (!isOwner(req.me, eq) || !editable(eq)) return res.status(403).json({ error: "Files can only be added before the equipment is sent to your HOD." });
+  if (!canEdit(req.me, eq)) return res.status(403).json({ error: "You cannot add files to this record." });
   const { kind, filename = "", contentBase64 = "" } = req.body || {};
   if (!kindOk(kind)) return res.status(400).json({ error: "Unknown document type." });
   const ext = path.extname(String(filename)).slice(1).toLowerCase();
@@ -310,7 +392,7 @@ collegeRouter.get("/files/:fileId", async (req, res) => {
 collegeRouter.delete("/files/:fileId", async (req, res) => {
   const hit = await loadFile(req);
   if (!hit) return res.status(404).json({ error: "File not found." });
-  if (!isOwner(req.me, hit.eq) || !editable(hit.eq)) return res.status(403).json({ error: "Files can only be removed while the record is a draft." });
+  if (!canEdit(req.me, hit.eq)) return res.status(403).json({ error: "You cannot remove files from this record." });
   fs.rm(path.join(STORAGE, hit.f.stored_name), { force: true }, () => {});
   await pool.query("DELETE FROM equipment_files WHERE id = ?", [hit.f.id]);
   res.json({ ok: true });
@@ -332,7 +414,7 @@ publicRouter.get("/form-spec", (req, res) => res.json({ templates: templateList(
 publicRouter.get("/explore", async (req, res) => {
   const [rows] = await pool.query(
     `SELECT c.code, c.name, c.city, COUNT(DISTINCT e.lab_id) AS labs, COUNT(e.id) AS equipment
-       FROM colleges c LEFT JOIN equipment e ON e.college_id = c.id AND e.status = 'approved'
+       FROM colleges c LEFT JOIN equipment e ON e.college_id = c.id AND e.pub_data IS NOT NULL
       WHERE c.is_central = 0 GROUP BY c.id ORDER BY c.sort_order`);
   res.json({ colleges: rows.map((r) => ({ ...r, labs: n(r.labs), equipment: n(r.equipment) })) });
 });
@@ -342,7 +424,7 @@ publicRouter.get("/colleges/:code", async (req, res) => {
   if (!college) return res.status(404).json({ error: "College not found." });
   const [rows] = await pool.query(
     `SELECT l.id, l.department, l.name, l.description, l.building, l.floor, l.room, COUNT(e.id) AS equipment
-       FROM labs l JOIN equipment e ON e.lab_id = l.id AND e.status = 'approved'
+       FROM labs l JOIN equipment e ON e.lab_id = l.id AND e.pub_data IS NOT NULL
       WHERE l.college_id = ? GROUP BY l.id ORDER BY l.department, l.name`, [college.id]);
   const departments = [];
   for (const r of rows) {
@@ -359,8 +441,8 @@ publicRouter.get("/colleges/:code/departments/:dept", async (req, res) => {
   if (!college) return res.status(404).json({ error: "College not found." });
   const department = String(req.params.dept);
   const [rows] = await pool.query(
-    `SELECT e.id, e.name, e.template_key, e.data, l.id AS lab_id, l.name AS lab_name, l.description, l.building, l.floor, l.room
-       FROM equipment e JOIN labs l ON l.id = e.lab_id WHERE e.college_id = ? AND l.department = ? AND e.status = 'approved' ORDER BY l.name, e.name`, [college.id, department]);
+    `SELECT e.id, e.name, e.template_key, e.pub_data AS data, l.id AS lab_id, l.name AS lab_name, l.description, l.building, l.floor, l.room
+       FROM equipment e JOIN labs l ON l.id = e.lab_id WHERE e.college_id = ? AND l.department = ? AND e.pub_data IS NOT NULL ORDER BY l.name, e.name`, [college.id, department]);
   if (!rows.length) return res.status(404).json({ error: "This department has no published equipment yet." });
   const [photos] = await pool.query("SELECT equipment_id, MIN(id) AS id FROM equipment_files WHERE kind = 'photos' AND equipment_id IN (?) GROUP BY equipment_id", [rows.map((r) => r.id)]);
   const photo = Object.fromEntries(photos.map((p) => [p.equipment_id, p.id]));
@@ -415,7 +497,7 @@ publicRouter.get("/labs/:id", async (req, res) => {
             COALESCE(NULLIF(l.contact_name, ''), u.name) AS coordinatorName, COALESCE(NULLIF(l.contact_email, ''), u.email) AS coordinatorEmail, l.contact_phone AS coordinatorPhone
        FROM labs l JOIN colleges c ON c.id = l.college_id LEFT JOIN users u ON u.id = l.incharge_user_id WHERE l.id = ?`, [Number(req.params.id)]);
   if (!lab) return res.status(404).json({ error: "Lab not found." });
-  const [rows] = await pool.query("SELECT id, name, template_key, data FROM equipment WHERE lab_id = ? AND status = 'approved' ORDER BY name", [lab.id]);
+  const [rows] = await pool.query("SELECT id, name, template_key, pub_data AS data FROM equipment WHERE lab_id = ? AND pub_data IS NOT NULL ORDER BY name", [lab.id]);
   if (!rows.length) return res.status(404).json({ error: "This lab has no published equipment yet." });
   const [photos] = await pool.query("SELECT equipment_id, MIN(id) AS id FROM equipment_files WHERE kind = 'photos' AND equipment_id IN (?) GROUP BY equipment_id", [rows.map((r) => r.id)]);
   const photo = Object.fromEntries(photos.map((p) => [p.equipment_id, p.id]));
@@ -433,7 +515,7 @@ publicRouter.get("/labs/:id/record", async (req, res) => {
             COALESCE(NULLIF(l.contact_name, ''), u.name) AS coordinatorName, COALESCE(NULLIF(l.contact_email, ''), u.email) AS coordinatorEmail, l.contact_phone AS coordinatorPhone
        FROM labs l JOIN colleges c ON c.id = l.college_id LEFT JOIN users u ON u.id = l.incharge_user_id WHERE l.id = ?`, [Number(req.params.id)]);
   if (!lab) return res.status(404).json({ error: "Lab not found." });
-  const [rows] = await pool.query("SELECT * FROM equipment WHERE lab_id = ? AND status = 'approved' ORDER BY name", [lab.id]);
+  const [rows] = await pool.query("SELECT *, pub_data AS data FROM equipment WHERE lab_id = ? AND pub_data IS NOT NULL ORDER BY name", [lab.id]);
   if (!rows.length) return res.status(404).json({ error: "This lab has no published equipment yet." });
   const [photos] = await pool.query("SELECT equipment_id, MIN(id) AS id FROM equipment_files WHERE kind = 'photos' AND equipment_id IN (?) GROUP BY equipment_id", [rows.map((r) => r.id)]);
   const photo = Object.fromEntries(photos.map((p) => [p.equipment_id, p.id]));
@@ -443,9 +525,9 @@ publicRouter.get("/labs/:id/record", async (req, res) => {
 publicRouter.get("/equipment/:id", async (req, res) => {
   const [[row]] = await pool.query(
     `SELECT e.*, l.name AS lab_name, l.id AS lab_id, c.code AS college_code, c.name AS college_name
-       FROM equipment e JOIN labs l ON l.id = e.lab_id JOIN colleges c ON c.id = e.college_id WHERE e.id = ? AND e.status = 'approved'`, [Number(req.params.id)]);
+       FROM equipment e JOIN labs l ON l.id = e.lab_id JOIN colleges c ON c.id = e.college_id WHERE e.id = ? AND e.pub_data IS NOT NULL`, [Number(req.params.id)]);
   if (!row) return res.status(404).json({ error: "Equipment not found." });
-  const eq = parse(row);
+  const eq = parse({ ...row, data: row.pub_data });
   const { spec, sections, data } = publicView(eq);
   const [files] = await pool.query("SELECT id, kind, original_name AS name, size FROM equipment_files WHERE equipment_id = ? AND kind IN (?) ORDER BY id", [eq.id, PUBLIC_FILE_KINDS]);
   res.json({ equipment: { id: eq.id, name: eq.name, type: spec.template?.label, data, approvedAt: eq.approved_at }, lab: { id: eq.lab_id, name: eq.lab_name, department: eq.department }, college: { code: eq.college_code, name: eq.college_name }, sections, files, fileKinds: FILE_KINDS });
@@ -453,7 +535,7 @@ publicRouter.get("/equipment/:id", async (req, res) => {
 
 publicRouter.get("/files/:fileId", async (req, res) => {
   const [[f]] = await pool.query(
-    "SELECT f.* FROM equipment_files f JOIN equipment e ON e.id = f.equipment_id WHERE f.id = ? AND e.status = 'approved' AND f.kind IN (?)", [Number(req.params.fileId), PUBLIC_FILE_KINDS]);
+    "SELECT f.* FROM equipment_files f JOIN equipment e ON e.id = f.equipment_id WHERE f.id = ? AND e.pub_data IS NOT NULL AND f.kind IN (?)", [Number(req.params.fileId), PUBLIC_FILE_KINDS]);
   if (!f) return res.status(404).json({ error: "File not found." });
   sendStored(res, f);
 });

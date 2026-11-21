@@ -45,7 +45,7 @@ export default function LabsOverview() {
 
   return (
     <div className="fade-up">
-      <h2>Labs & equipment</h2>
+      <div className="row" style={{ flexWrap: 'wrap' }}><h2 style={{ margin: 0 }}>Labs & equipment</h2><span className="spacer" /><Button as={Link} variant="ghost" size="sm" to={`/c/${college}/report/labs`}>Lab configuration report</Button><Button as={Link} variant="ghost" size="sm" to={`/c/${college}/report/equipment`}>Equipment-wise report</Button></div>
       <p className="muted">{isHod ? <>Your department&apos;s labs. Records awaiting <b>your approval</b> are highlighted.</> : 'Every lab of the college, department-wise or lab-wise. Open a lab for all its equipment and full details.'}</p>
 
       {ov && (
@@ -92,7 +92,7 @@ export default function LabsOverview() {
               {l.coordinator && <div className="muted" style={{ fontSize: 13 }}>Coordinator: {l.coordinator}</div>}
               <Counts l={l} />
               {isHod && l.submitted > 0 && <p style={{ color: 'var(--c-secondary)', fontWeight: 700 }}>{l.submitted} waiting for your approval</p>}
-              <span className="row" style={{ gap: 14 }}><Link to={`/c/${college}/lab-details/${l.id}`}>Open lab</Link>{l.approved > 0 && <Link to={`/explore/lab/${l.id}`} className="row"><ExternalLink size={13} /> Published page</Link>}</span>
+              <span className="row" style={{ gap: 14 }}><Link to={`/c/${college}/lab-details/${l.id}/review`}>{isHod ? 'Review & approve' : 'Open lab'}</Link>{l.approved > 0 && <Link to={`/explore/lab/${l.id}`} className="row"><ExternalLink size={13} /> Published page</Link>}</span>
             </Card>))}</div>
         </section>))}
     </div>

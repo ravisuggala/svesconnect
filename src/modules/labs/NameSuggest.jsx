@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../../core/api'
 
 /** Equipment name box with an instant list of matching names already used in this college. Picking one fills in its purpose too; anything else is a new name. */
-export default function NameSuggest({ college, value, onChange, onPick, error }) {
+export default function NameSuggest({ college, value, onChange, onPick, onExact, error }) {
   const [items, setItems] = useState([])
   const [open, setOpen] = useState(false)
   const [hi, setHi] = useState(-1)
@@ -14,9 +14,10 @@ export default function NameSuggest({ college, value, onChange, onPick, error })
     const n = ++seq.current
     if (!q) return undefined
     const t = setTimeout(() => {
-      api(`/c/${college}/catalog?q=${encodeURIComponent(q)}`).then((r) => { if (n === seq.current) setItems(r.items) }).catch(() => {})
+      api(`/c/${college}/catalog?q=${encodeURIComponent(q)}`).then((r) => { if (n !== seq.current) return; setItems(r.items); const ex = r.items.find((i) => i.name.toLowerCase() === q.toLowerCase()); onExact?.(ex || null) }).catch(() => {})
     }, 120)
     return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, college])
 
   useEffect(() => {

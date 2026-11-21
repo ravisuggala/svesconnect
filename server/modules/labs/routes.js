@@ -6,7 +6,9 @@ const crypto = require("crypto");
 const pool = require("../../db/pool");
 const { collegeContext } = require("../../core/college");
 const searchIndex = () => require("../search/index"); // lazy: keeps the index optional and avoids load-order issues
-const { buildSpec, templateList, findTemplate, missingRequired, allowedKeys, isVisible, FILE_KINDS } = require("./formSpec");
+const summary = require("./summary");
+const nameKey = summary.nameKey;
+const { buildSpec, templateList, categoryList, isCurrent, findTemplate, missingRequired, allowedKeys, isVisible, FILE_KINDS } = require("./formSpec");
 
 const STORAGE = process.env.STORAGE_DIR || path.join(__dirname, "..", "..", "..", "storage");
 const MAX_FILE = 8 * 1024 * 1024;
@@ -15,8 +17,8 @@ const kindOk = (k) => FILE_KINDS.some((x) => x.key === k);
 
 // What the public may see: no finance, warranty/AMC, internal files or known issues.
 const PUBLIC_SECTIONS = ["basic", "technical", "template", "operations", "usage", "contact"];
-const PUBLIC_HIDDEN_KEYS = new Set(["equipment_cost_lakhs", "known_issues"]);
-const PUBLIC_FILE_KINDS = ["photos", "brochure", "user_manual"];
+const PUBLIC_HIDDEN_KEYS = new Set(["equipment_cost_lakhs", "known_issues", "warranty_years", "total_cost"]);
+const PUBLIC_FILE_KINDS = ["photos"]; // uploaded documents are never public; only the equipment photo is
 
 const parse = (row) => ({ ...row, data: row.data ? JSON.parse(row.data) : {} });
 const n = (v) => Number(v) || 0;
@@ -28,6 +30,12 @@ function cleanValue(field, v) {
     case "number": { const x = String(v).trim(); return x === "" ? "" : Number.isFinite(Number(x)) ? Number(x) : ""; }
     case "list": return (Array.isArray(v) ? v : String(v).split("\n")).map((x) => String(x).trim().slice(0, 300)).filter(Boolean).slice(0, 50);
     case "kv": return (Array.isArray(v) ? v : []).map((r) => ({ k: String(r?.k || "").trim().slice(0, 120), v: String(r?.v || "").trim().slice(0, 300) })).filter((r) => r.k || r.v).slice(0, 60);
+    case "counts": {
+      const o = v && typeof v === "object" ? v : {};
+      const i = (x) => Math.max(0, Math.floor(Number(x) || 0));
+      const out = { repair: i(o.repair), unused: i(o.unused), note: String(o.note || "").trim().slice(0, 300) };
+      return out.repair || out.unused || out.note ? out : "";
+    }
     case "yesno": return ["Yes", "No"].includes(v) ? v : "";
     case "select": return field.options.includes(v) ? v : "";
     default: return String(v).trim().slice(0, 5000);
@@ -38,6 +46,20 @@ function cleanData(spec, incoming) {
   const out = {};
   for (const [k, v] of Object.entries(incoming || {})) if (byKey.has(k)) out[k] = cleanValue(byKey.get(k), v);
   return out;
+}
+// Values worked out from the answers, so every page and report counts the same way (current form only).
+function derive(tplKey, d) {
+  if (!isCurrent(tplKey)) return d;
+  const qty = Math.max(1, Math.floor(Number(d.quantity) || 1));
+  d.quantity = qty;
+  const c = d.condition && typeof d.condition === "object" ? d.condition : {};
+  const repair = Math.min(qty, Math.max(0, Math.floor(Number(c.repair) || 0)));
+  const unused = Math.min(qty - repair, Math.max(0, Math.floor(Number(c.unused) || 0)));
+  d.condition = repair || unused || c.note ? { repair, unused, note: c.note || "" } : "";
+  d.units_working = qty - repair - unused;
+  d.current_status = repair + unused === 0 ? "Working" : d.units_working > 0 ? "Partly working" : repair >= unused ? "Under repair" : "Not in use";
+  if (d.total_cost !== "" && d.total_cost !== undefined && Number.isFinite(Number(d.total_cost))) d.equipment_cost_lakhs = Math.round((Number(d.total_cost) / 100000) * 10000) / 10000; else delete d.equipment_cost_lakhs;
+  return d;
 }
 const specText = (d) => [d.detailed_specifications, ...(d.spec_rows || []).map((r) => `${r.k}: ${r.v}`)].filter(Boolean).join("\n");
 const locationText = (d) => [d.location_facility, d.building, d.floor && `Floor ${d.floor}`, d.room && `Room ${d.room}`].filter(Boolean).join(", ");
@@ -112,7 +134,7 @@ collegeRouter.get("/labs/:id", async (req, res) => {
   const lab = await loadLab(req, req.params.id);
   if (!lab) return res.status(404).json({ error: "Lab not found." });
   const [rows] = await pool.query("SELECT id, name, template_key AS templateKey, status, review_note AS reviewNote, updated_at AS updatedAt FROM equipment WHERE lab_id = ? ORDER BY updated_at DESC", [lab.id]);
-  res.json({ lab, equipment: rows, templates: templateList() });
+  res.json({ lab, equipment: rows, templates: templateList(), categories: categoryList() });
 });
 
 collegeRouter.patch("/labs/:id", async (req, res) => {
@@ -126,14 +148,13 @@ collegeRouter.patch("/labs/:id", async (req, res) => {
 });
 
 // ---------- equipment catalogue (name + purpose, shared by the whole college) ----------
-const nameKey = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 255);
 
 collegeRouter.get("/catalog", async (req, res) => {
   const k = nameKey(req.query.q);
   if (!k) return res.json({ items: [] });
   const like = k.replace(/[\\%_]/g, "\\$&");
   const [rows] = await pool.query(
-    `SELECT c.id, c.name, c.purpose, (SELECT COUNT(DISTINCT e.lab_id) FROM equipment e WHERE e.college_id = c.college_id AND LOWER(e.name) = LOWER(c.name)) AS labs
+    `SELECT c.id, c.name, c.purpose, c.type_key AS typeKey, (SELECT COUNT(DISTINCT e.lab_id) FROM equipment e WHERE e.college_id = c.college_id AND LOWER(e.name) = LOWER(c.name)) AS labs
        FROM equipment_catalog c WHERE c.college_id = ? AND (c.name_key LIKE ? OR c.name_key LIKE ?)
       ORDER BY (c.name_key LIKE ?) DESC, c.name LIMIT 8`,
     [req.college.id, `${like}%`, `% ${like}%`, `${like}%`]);
@@ -144,24 +165,38 @@ collegeRouter.post("/labs/:id/equipment", async (req, res) => {
   const lab = await loadLab(req, req.params.id);
   if (!lab || !(req.me.role === "lab_incharge" && req.me.lab_id === lab.id)) return res.status(403).json({ error: "Only the lab coordinator can add equipment." });
   const { templateKey, name, purpose } = req.body || {};
-  const tpl = findTemplate(templateKey || "general");
   let nm = String(name || "").trim().replace(/\s+/g, " ").slice(0, 255);
-  if (nm.length < 2) return res.status(400).json({ error: "Enter the equipment name.", fields: { name: "Enter the equipment name." } });
-  // The college catalogue: reuse an existing name (keeps spelling the same everywhere) or add this one for everybody.
+  if (nm.length < 2) return res.status(400).json({ error: "Please type the name of the equipment.", fields: { name: "Please type the name of the equipment." } });
+  // The college catalogue: reuse an existing name (keeps spelling, type and purpose the same everywhere) or add this one for everybody.
   const key = nameKey(nm);
-  const [found] = await pool.query("SELECT id, name, purpose FROM equipment_catalog WHERE college_id = ? AND name_key = ?", [req.college.id, key]);
+  const [found] = await pool.query("SELECT id, name, purpose, type_key FROM equipment_catalog WHERE college_id = ? AND name_key = ?", [req.college.id, key]);
   const known = found[0];
+  const [dupe] = await pool.query("SELECT id FROM equipment WHERE lab_id = ? AND LOWER(name) = LOWER(?) LIMIT 1", [lab.id, known ? known.name : nm]);
+  if (dupe.length) return res.status(409).json({ error: `“${known ? known.name : nm}” is already in your lab. Open it from your list to add or change its details.`, fields: { name: "Already in your lab. Open it from your list." } });
   let why = String(purpose || "").trim().slice(0, 1000);
-  if (known) { nm = known.name; if (!why) why = known.purpose || ""; }
-  if (why.length < 3) return res.status(400).json({ error: "Tell us what this equipment is used for.", fields: { purpose: "Write a short line on what it is used for." } });
-  if (!known) await pool.query("INSERT IGNORE INTO equipment_catalog (college_id, name, name_key, purpose, created_by, department) VALUES (?,?,?,?,?,?)", [req.college.id, nm, key, why, req.me.id, lab.department]);
-  else if (!known.purpose) await pool.query("UPDATE equipment_catalog SET purpose = ? WHERE id = ?", [why, known.id]);
-  // Prefill what we already know so the coordinator is not asked twice.
-  const data = { name: nm, description: why, contact_name: req.me.name, contact_email: req.me.email, contact_department: lab.department, building: lab.building || "", floor: lab.floor || "", room: lab.room || "", accessibility: lab.accessibility || "" };
+  let type = String(templateKey || "");
+  if (known) { nm = known.name; if (!why) why = known.purpose || ""; if (known.type_key && isCurrent(known.type_key)) type = known.type_key; }
+  if (!isCurrent(type)) return res.status(400).json({ error: "Please choose what kind of equipment this is.", fields: { templateKey: "Please choose what kind of equipment this is." } });
+  if (why.length < 3) return res.status(400).json({ error: "Please write a short line on what it is used for.", fields: { purpose: "Please write a short line on what it is used for." } });
+  const tpl = findTemplate(type);
+  if (!known) await pool.query("INSERT IGNORE INTO equipment_catalog (college_id, name, name_key, purpose, type_key, created_by, department) VALUES (?,?,?,?,?,?,?)", [req.college.id, nm, key, why, type, req.me.id, lab.department]);
+  else if (!known.purpose || !known.type_key) await pool.query("UPDATE equipment_catalog SET purpose = COALESCE(NULLIF(purpose, ''), ?), type_key = COALESCE(type_key, ?) WHERE id = ?", [why, type, known.id]);
+  const data = derive(type, { name: nm, description: why, quantity: 1, contact_name: req.me.name, contact_email: req.me.email, contact_department: lab.department });
   const [r] = await pool.query(
     "INSERT INTO equipment (college_id, lab_id, department, template_key, name, category, data, status, created_by) VALUES (?,?,?,?,?,?,?, 'draft', ?)",
     [req.college.id, lab.id, lab.department, tpl.key, nm, tpl.label, JSON.stringify(data), req.me.id]);
-  res.status(201).json({ id: r.insertId });
+  res.status(201).json({ id: r.insertId, existing: !!known });
+});
+
+// Everything entered for one lab, for the in-charge's / HOD's / Principal's printed copy (internal: includes purchase and service details).
+collegeRouter.get("/labs/:id/record", async (req, res) => {
+  const lab = await loadLab(req, req.params.id);
+  if (!lab) return res.status(404).json({ error: "Lab not found." });
+  const [[c]] = await pool.query("SELECT name, COALESCE(NULLIF(address, ''), CONCAT_WS(', ', name, city)) AS address FROM colleges WHERE id = ?", [req.college.id]);
+  const [rows] = await pool.query("SELECT * FROM equipment WHERE lab_id = ? ORDER BY name", [lab.id]);
+  const ids = rows.map((r) => r.id);
+  const [files] = ids.length ? await pool.query("SELECT id, equipment_id, kind, original_name AS name, size FROM equipment_files WHERE equipment_id IN (?) ORDER BY id", [ids]) : [[]];
+  res.json({ lab, college: c, equipment: rows.map((r) => { const eq = parse(r); const spec = buildSpec(eq.template_key); return { id: eq.id, name: eq.name, status: eq.status, type: spec.template?.label, data: eq.data, sections: spec.sections.filter((s) => !s.files || s.fields.length), files: files.filter((f) => f.equipment_id === eq.id) }; }) });
 });
 
 collegeRouter.get("/equipment/:id", async (req, res) => {
@@ -179,11 +214,11 @@ collegeRouter.get("/equipment/:id", async (req, res) => {
 collegeRouter.patch("/equipment/:id", async (req, res) => {
   const eq = await loadEquipment(req, req.params.id);
   if (!eq) return res.status(404).json({ error: "Equipment not found." });
-  if (!isOwner(req.me, eq) || !editable(eq)) return res.status(403).json({ error: "This record can no longer be edited." });
+  if (!isOwner(req.me, eq) || !editable(eq)) return res.status(403).json({ error: "This record has been sent to your HOD, so it cannot be changed now." });
   const spec = buildSpec(eq.template_key);
   const clean = cleanData(spec, req.body?.data);
   if ("name" in clean && String(clean.name).length < 2) delete clean.name;
-  const data = { ...eq.data, ...clean };
+  const data = derive(eq.template_key, { ...eq.data, ...clean });
   await pool.query(
     "UPDATE equipment SET data = ?, name = ?, description = ?, specifications = ?, location = ? WHERE id = ?",
     [JSON.stringify(data), data.name || eq.name, data.description || null, specText(data) || null, locationText(data) || null, eq.id]);
@@ -239,16 +274,20 @@ collegeRouter.delete("/equipment/:id", async (req, res) => {
 collegeRouter.post("/equipment/:id/files", async (req, res) => {
   const eq = await loadEquipment(req, req.params.id);
   if (!eq) return res.status(404).json({ error: "Equipment not found." });
-  if (!isOwner(req.me, eq) || !editable(eq)) return res.status(403).json({ error: "Files can only be added while the record is a draft." });
+  if (!isOwner(req.me, eq) || !editable(eq)) return res.status(403).json({ error: "Files can only be added before the equipment is sent to your HOD." });
   const { kind, filename = "", contentBase64 = "" } = req.body || {};
   if (!kindOk(kind)) return res.status(400).json({ error: "Unknown document type." });
   const ext = path.extname(String(filename)).slice(1).toLowerCase();
-  if (!EXT[ext]) return res.status(400).json({ error: "Allowed files: PDF, images, Word and Excel." });
+  if (!EXT[ext]) return res.status(400).json({ error: "Please choose a PDF, a photo (JPG or PNG), a Word file or an Excel file." });
   const buf = Buffer.from(String(contentBase64), "base64");
-  if (!buf.length) return res.status(400).json({ error: "The file is empty." });
-  if (buf.length > MAX_FILE) return res.status(413).json({ error: "File is larger than 8 MB." });
+  if (!buf.length) return res.status(400).json({ error: "That file looks empty. Please choose it again." });
+  if (buf.length > MAX_FILE) return res.status(413).json({ error: "That file is bigger than 8 MB. Please choose a smaller file or reduce its size." });
   const [[{ c }]] = await pool.query("SELECT COUNT(*) AS c FROM equipment_files WHERE equipment_id = ?", [eq.id]);
-  if (c >= 40) return res.status(400).json({ error: "Too many files for one equipment." });
+  if (c >= 40) return res.status(400).json({ error: "This equipment already has many files. Please remove one first." });
+  if (kind === "photos") { // one photo per equipment: a new one replaces the old
+    const [old] = await pool.query("SELECT id, stored_name FROM equipment_files WHERE equipment_id = ? AND kind = 'photos'", [eq.id]);
+    for (const o of old) { fs.rm(path.join(STORAGE, o.stored_name), { force: true }, () => {}); await pool.query("DELETE FROM equipment_files WHERE id = ?", [o.id]); }
+  }
   fs.mkdirSync(STORAGE, { recursive: true });
   const stored = `${crypto.randomBytes(16).toString("hex")}.${ext}`;
   fs.writeFileSync(path.join(STORAGE, stored), buf);
@@ -336,6 +375,39 @@ publicRouter.get("/colleges/:code/departments/:dept", async (req, res) => {
   res.json({ college, department, stats: { labs: labs.length, equipment: rows.length, working }, labs });
 });
 
+// The public part of one equipment record: allowed sections and fields only, and only their values (an allow-list, so a new private field can never leak).
+function publicView(eq) {
+  const spec = buildSpec(eq.template_key);
+  const sections = spec.sections.filter((s) => PUBLIC_SECTIONS.includes(s.key)).map((s) => ({ key: s.key, title: s.title, fields: s.fields.filter((f) => !PUBLIC_HIDDEN_KEYS.has(f.key) && isVisible(f, eq.data)) }));
+  const shown = new Set(["name", ...sections.flatMap((s) => s.fields.map((f) => f.key))]);
+  const data = Object.fromEntries(Object.entries(eq.data).filter(([k]) => shown.has(k)));
+  return { spec, sections, data };
+}
+
+// Equipment-wise public pages: one entry per equipment for the whole college (all departments and labs together).
+async function publicCollege(code) {
+  const [[c]] = await pool.query("SELECT id, code, name, city FROM colleges WHERE code = ? AND is_central = 0", [String(code).toUpperCase()]);
+  return c || null;
+}
+publicRouter.get("/colleges/:code/equipment", async (req, res) => {
+  const college = await publicCollege(req.params.code);
+  if (!college) return res.status(404).json({ error: "We could not find that college." });
+  const q = nameKey(req.query.q);
+  let list = await summary.groups(college.id);
+  const types = [...new Set(list.map((g) => g.type))].sort();
+  if (req.query.type) list = list.filter((g) => g.type === req.query.type);
+  if (q) list = list.filter((g) => nameKey(`${g.name} ${g.purpose} ${g.type} ${g.brands.map((b) => b.name).join(" ")}`).includes(q));
+  res.json({ college, types, totals: { equipment: list.length, units: list.reduce((t, g) => t + g.units, 0) },
+    items: list.map((g) => ({ slug: g.slug, name: g.name, type: g.type, purpose: g.purpose, units: g.units, working: g.working, labs: g.labCount, departments: g.departments, photoId: g.photoId })) });
+});
+publicRouter.get("/colleges/:code/equipment/:slug", async (req, res) => {
+  const college = await publicCollege(req.params.code);
+  if (!college) return res.status(404).json({ error: "We could not find that college." });
+  const g = (await summary.groups(college.id)).find((x) => x.key === summary.unslug(req.params.slug));
+  if (!g) return res.status(404).json({ error: "This equipment is not published yet." });
+  res.json({ college, equipment: g, summary: await summary.summaryFor(college, g) });
+});
+
 publicRouter.get("/labs/:id", async (req, res) => {
   const [[lab]] = await pool.query(
     `SELECT l.id, l.name, l.department, l.description, l.building, l.floor, l.room, l.accessibility, c.code AS collegeCode, c.name AS collegeName,
@@ -353,17 +425,28 @@ publicRouter.get("/labs/:id", async (req, res) => {
   });
 });
 
+// One printable page per published lab: lab information plus the public details and photo of every published equipment.
+publicRouter.get("/labs/:id/record", async (req, res) => {
+  const [[lab]] = await pool.query(
+    `SELECT l.id, l.name, l.department, l.description, l.building, l.floor, l.room, l.accessibility, c.code AS collegeCode, c.name AS collegeName,
+            COALESCE(NULLIF(c.address, ''), CONCAT_WS(', ', c.name, c.city)) AS collegeAddress,
+            COALESCE(NULLIF(l.contact_name, ''), u.name) AS coordinatorName, COALESCE(NULLIF(l.contact_email, ''), u.email) AS coordinatorEmail, l.contact_phone AS coordinatorPhone
+       FROM labs l JOIN colleges c ON c.id = l.college_id LEFT JOIN users u ON u.id = l.incharge_user_id WHERE l.id = ?`, [Number(req.params.id)]);
+  if (!lab) return res.status(404).json({ error: "Lab not found." });
+  const [rows] = await pool.query("SELECT * FROM equipment WHERE lab_id = ? AND status = 'approved' ORDER BY name", [lab.id]);
+  if (!rows.length) return res.status(404).json({ error: "This lab has no published equipment yet." });
+  const [photos] = await pool.query("SELECT equipment_id, MIN(id) AS id FROM equipment_files WHERE kind = 'photos' AND equipment_id IN (?) GROUP BY equipment_id", [rows.map((r) => r.id)]);
+  const photo = Object.fromEntries(photos.map((p) => [p.equipment_id, p.id]));
+  res.json({ lab, equipment: rows.map((r) => { const eq = parse(r); const v = publicView(eq); return { id: eq.id, name: eq.name, type: findTemplate(eq.template_key)?.label, sections: v.sections, data: v.data, photoId: photo[eq.id] || null }; }) });
+});
+
 publicRouter.get("/equipment/:id", async (req, res) => {
   const [[row]] = await pool.query(
     `SELECT e.*, l.name AS lab_name, l.id AS lab_id, c.code AS college_code, c.name AS college_name
        FROM equipment e JOIN labs l ON l.id = e.lab_id JOIN colleges c ON c.id = e.college_id WHERE e.id = ? AND e.status = 'approved'`, [Number(req.params.id)]);
   if (!row) return res.status(404).json({ error: "Equipment not found." });
   const eq = parse(row);
-  const spec = buildSpec(eq.template_key);
-  const sections = spec.sections.filter((s) => PUBLIC_SECTIONS.includes(s.key)).map((s) => ({ ...s, fields: s.fields.filter((f) => !PUBLIC_HIDDEN_KEYS.has(f.key) && isVisible(f, eq.data)) }));
-  // Send only the values of fields that are shown publicly (an allow-list, so new private fields can never leak).
-  const shown = new Set(["name", ...sections.flatMap((s) => s.fields.map((f) => f.key))]);
-  const data = Object.fromEntries(Object.entries(eq.data).filter(([k]) => shown.has(k)));
+  const { spec, sections, data } = publicView(eq);
   const [files] = await pool.query("SELECT id, kind, original_name AS name, size FROM equipment_files WHERE equipment_id = ? AND kind IN (?) ORDER BY id", [eq.id, PUBLIC_FILE_KINDS]);
   res.json({ equipment: { id: eq.id, name: eq.name, type: spec.template?.label, data, approvedAt: eq.approved_at }, lab: { id: eq.lab_id, name: eq.lab_name, department: eq.department }, college: { code: eq.college_code, name: eq.college_name }, sections, files, fileKinds: FILE_KINDS });
 });

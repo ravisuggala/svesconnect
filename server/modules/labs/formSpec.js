@@ -111,6 +111,91 @@ const FILE_KINDS = [
   { key: "amc_contract", label: "AMC contract copy" },
   { key: "training", label: "Training certificates" },
   { key: "other", label: "Other documents" },
+  { key: "spec_file", label: "Specification file / datasheet" },
+  { key: "service_doc", label: "Warranty card / AMC document" },
+  { key: "sop", label: "Safety instructions / SOP" },
+];
+
+
+// ---------- Current form (used for all new equipment): short steps in plain words, help and an example on every question ----------
+// "Type of equipment" list (one simple list for every kind of institution). Add or rename entries here only.
+const CATEGORIES = [
+  ["cat_computing", "Computing", "Desktops, laptops, servers, GPU systems"],
+  ["cat_networking", "Networking", "Routers, switches, access points, cabling kits"],
+  ["cat_measuring", "Measuring & test instruments", "Oscilloscope, multimeter, signal generator, power supply"],
+  ["cat_electronics", "Electronics & embedded", "Microcontroller boards, sensors, FPGA kits, components"],
+  ["cat_electrical", "Electrical machines & power", "Motors, generators, transformers, drives, switchgear"],
+  ["cat_mechanical", "Mechanical & workshop (incl. heavy machines)", "Lathe, milling, CNC, shaper, press, welding, 3D printer"],
+  ["cat_vehicle", "Vehicle & automotive", "Engines, test rigs, dynamometer, EV kits, BAJA / Formula parts"],
+  ["cat_thermal", "Thermal & fluid", "Boilers, pumps, heat exchangers, refrigeration, wind tunnel"],
+  ["cat_civil", "Civil & survey", "Total station, theodolite, concrete and soil testing"],
+  ["cat_science", "Science (physics, chemistry)", "Spectrometer, balance, microscope, centrifuge"],
+  ["cat_bio", "Biology & life science", "Incubator, autoclave, PCR, microscopes"],
+  ["cat_pharmacy", "Pharmacy", "Tablet press, dissolution tester, HPLC, UV spectrophotometer"],
+  ["cat_dental", "Dental & medical", "Dental chair, X-ray unit, phantom head, autoclave"],
+  ["cat_software", "Software & licences", "MATLAB, ANSYS, AutoCAD, operating systems"],
+  ["cat_infra", "Furniture & infrastructure", "Benches, projectors, AC, UPS, generators"],
+  ["cat_other", "Other", "Anything that does not fit above"],
+];
+const categoryList = () => CATEGORIES.map(([key, label, hint]) => ({ key, label, hint }));
+const isCurrent = (key) => typeof key === "string" && key.startsWith("cat_");
+const FUNDING = ["Institute budget", "Government grant", "Industry", "CSR", "Other"];
+const eg = (v) => ({ example: v });
+
+const CURRENT_SECTIONS = [
+  { key: "basic", title: "Basic information", files: ["photos"],
+    help: "A few quick facts about this equipment. Skip anything you do not know. You can come back and add it later.",
+    fields: [
+      f("description", "What is it used for?", "textarea", { help: "One or two lines in your own words.", ...eg("Measures voltage waveforms in electronic circuits") }),
+      f("manufacturer", "Brand / make", "text", { help: "The company that made it. It is usually printed on the equipment.", ...eg("Kirloskar, Keysight, Dell") }),
+      f("model", "Model number", "text", { help: "Look for “Model” on the label at the back or side.", ...eg("DSOX1102G") }),
+      f("quantity", "How many do you have?", "number", { help: "Count all units of this equipment in your lab.", ...eg("10") }),
+      f("condition", "Condition today", "counts", { help: "Tell us how many units need repair or are not in use. All the others are counted as working." }),
+      f("year_bought", "Year bought", "number", { help: "The year it was purchased or installed. An approximate year is fine.", ...eg("2021") }),
+      f("warranty_years", "Warranty period", "number", { unit: "years", help: "If units have different warranties, enter the longest. Leave blank or enter 0 if there is none.", ...eg("3") }),
+    ] },
+  { key: "purchase", title: "Purchase details", files: ["invoice"],
+    help: "Only the college office can see this step. It is never shown to the public. Skip anything you do not have.",
+    fields: [
+      f("total_cost", "Total cost of all units", "number", { unit: "₹", help: "Enter the amount in rupees, for all units together.", ...eg("450000") }),
+      f("vendor_name", "Bought from (vendor / supplier)", "text", { ...eg("ABC Scientific Traders") }),
+      f("vendor_contact", "Vendor phone or email", "text", { help: "Optional." }),
+      sel("funding_source", "Funding source", FUNDING, { help: "Who paid for it?" }),
+      f("grant_name", "Grant or project name", "text", { showIf: { key: "funding_source", in: ["Government Grant", "Government grant", "Industry", "CSR", "Other"] }, help: "The name of the scheme or project that paid for it.", ...eg("AICTE MODROBS") }),
+      f("invoice_no", "Invoice number", "text", { help: "Printed at the top of the bill." }),
+      f("invoice_date", "Invoice date", "date"),
+    ] },
+  { key: "technical", title: "Technical details", files: ["spec_file"],
+    help: "List the main specifications as feature and value, one pair per row. You can also upload the datasheet.",
+    fields: [
+      f("spec_rows", "Main specifications", "kv", { help: "Add one row for each important feature. For example, “Bandwidth: 100 MHz”, “Spindle speed: 2000 rpm”, “RAM: 16 GB”." }),
+    ] },
+  { key: "service", title: "Service & maintenance", files: ["service_doc"],
+    help: "Only the college office can see this step. It is never shown to the public.",
+    fields: [
+      yn("amc_required", "Is it under an AMC (service contract)?", { help: "An AMC means a company services the equipment regularly for a yearly fee." }),
+      f("amc_provider", "AMC company", "text", { showIf: when("amc_required", "Yes"), ...eg("Blue Star Service") }),
+      f("amc_end", "AMC valid until", "date", { showIf: when("amc_required", "Yes") }),
+      f("amc_annual_cost", "Yearly AMC cost", "number", { unit: "₹", showIf: when("amc_required", "Yes") }),
+    ] },
+  { key: "operation", title: "Operation & safety", files: ["user_manual", "sop"],
+    help: "Only the college can see this step. Upload the manual or safety sheet if you have one.",
+    fields: [
+      f("commissioning_date", "Date put into use", "date", { help: "The day it started being used. An approximate date is fine." }),
+      yn("training_provided", "Was training given to staff?"),
+      f("faculty_trained", "How many faculty were trained?", "number", { showIf: when("training_provided", "Yes") }),
+      yn("user_manual", "Is a user manual available?"),
+      yn("sop_available", "Are safety instructions / an SOP available?"),
+    ] },
+  { key: "usage", title: "How it is used",
+    help: "This helps students and visitors understand what the equipment is for.",
+    fields: [
+      f("courses_using", "Courses or subjects that use it", "textarea", { ...eg("Machine Tools Lab, II Year Mechanical") }),
+      f("research_projects", "Research or student projects using it", "textarea", { help: "Optional." }),
+      f("avg_usage_hours", "Average use per week", "number", { unit: "hours", help: "A rough number is fine.", ...eg("12") }),
+    ] },
+  { key: "documents", title: "Other documents", files: ["other"],
+    help: "Anything else worth keeping with this record: installation report, calibration certificate, training certificate and so on. Optional, and never shown to the public." , fields: [] },
 ];
 
 // Department-specific templates (additional fields from the SVES template PDF). Keys are auto-prefixed with the template prefix.
@@ -207,12 +292,13 @@ const TEMPLATES = [
   T("general", "General", "Other equipment (pharmacy, dental, general labs)", "gn", []),
 ];
 
-const templateList = () => TEMPLATES.map(({ key, dept, label }) => ({ key, dept, label }));
-const findTemplate = (key) => TEMPLATES.find((t) => t.key === key);
+const templateList = () => [...TEMPLATES.map(({ key, dept, label }) => ({ key, dept, label })), ...CATEGORIES.map(([key, label]) => ({ key, dept: "Type", label }))];
+const findTemplate = (key) => TEMPLATES.find((t) => t.key === key) || (CATEGORIES.find((c) => c[0] === key) && { key, dept: "Type", label: CATEGORIES.find((c) => c[0] === key)[1], prefix: "", fields: [] });
 
 // Full ordered form for one template: base sections with the template's extra section after "technical".
 function buildSpec(templateKey) {
   const tpl = findTemplate(templateKey);
+  if (isCurrent(templateKey)) return { template: tpl ? { key: tpl.key, label: tpl.label, dept: tpl.dept } : null, sections: CURRENT_SECTIONS, fileKinds: FILE_KINDS, highValueLakhs: null, current: true };
   const sections = [];
   for (const s of BASE_SECTIONS) {
     sections.push(s);
@@ -242,4 +328,4 @@ function missingRequired(spec, data) {
 }
 const allowedKeys = (spec) => new Set(["name", ...spec.sections.flatMap((s) => s.fields.map((x) => x.key))]);
 
-module.exports = { buildSpec, templateList, findTemplate, isVisible, missingRequired, allowedKeys, FILE_KINDS, HIGH_VALUE_LAKHS };
+module.exports = { buildSpec, templateList, categoryList, isCurrent, findTemplate, isVisible, missingRequired, allowedKeys, FILE_KINDS, HIGH_VALUE_LAKHS };

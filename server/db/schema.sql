@@ -38,10 +38,22 @@ CREATE TABLE IF NOT EXISTS equipment_catalog (
   name        VARCHAR(255) NOT NULL,
   name_key    VARCHAR(255) NOT NULL,
   purpose     TEXT,
+  type_key    VARCHAR(40) NULL,
   created_by  INT UNSIGNED NULL,
   department  VARCHAR(120),
   created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_catalog_name (college_id, name_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- AI-written (or template) summary of one equipment across a whole college, shown on the public equipment pages. Rebuilt when the public facts change.
+CREATE TABLE IF NOT EXISTS equipment_summaries (
+  college_id  INT UNSIGNED NOT NULL,
+  name_key    VARCHAR(255) NOT NULL,
+  facts_hash  CHAR(40) NOT NULL,
+  summary     TEXT,
+  source      VARCHAR(10) NOT NULL DEFAULT 'template',
+  updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (college_id, name_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Labs: one per lab coordinator, organised as college > department > lab. Labs are never mixed when published.

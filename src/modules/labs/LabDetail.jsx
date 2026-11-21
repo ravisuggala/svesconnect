@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, FileText } from 'lucide-react'
 import { Badge, Table, useToast } from '../../ui'
 import { api } from '../../core/api'
 import { STATUS } from './spec'
@@ -19,7 +19,7 @@ export default function LabDetail() {
   return (
     <div className="fade-up">
       <Link to={`/c/${college}/lab-details`} className="row"><ArrowLeft size={14} /> All labs</Link>
-      <h2 style={{ marginTop: 'var(--s-3)' }}>{r?.lab.name || 'Lab'}</h2>
+      <div className="row" style={{ marginTop: 'var(--s-3)' }}><h2 style={{ margin: 0 }}>{r?.lab.name || 'Lab'}</h2><span className="spacer" /><Link to={`/c/${college}/lab-details/${labId}/record`} className="btn btn-ghost"><FileText size={14} /> Lab record (PDF)</Link></div>
       {r && <p className="muted">{r.lab.department}{r.lab.description ? ` · ${r.lab.description}` : ''}</p>}
       <Table columns={columns} rows={r?.equipment || []} loading={!r} />
     </div>

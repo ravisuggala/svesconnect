@@ -43,6 +43,7 @@ export function ExploreCollege() {
       {error ? <Err error={error} /> : !data ? <Loading /> : (
         <>
           <h1 style={{ fontSize: '2rem' }}>{data.college.name}</h1><p className="muted">{data.college.city}</p>
+          <p><Link to={`/explore/c/${code}/equipment`} className="btn btn-primary">Browse all equipment <ArrowRight size={14} /></Link></p>
           {!data.departments.length && <EmptyState title="No published labs yet" icon={FlaskConical}>Equipment appears here after it is verified and approved.</EmptyState>}
           {data.departments.map((d) => (
             <section key={d.department} style={{ marginTop: 'var(--s-5)' }}><h3 style={{ color: 'var(--c-primary)' }}>{d.department} <Link to={`/explore/c/${code}/d/${encodeURIComponent(d.department)}`} style={{ fontSize: 14, fontWeight: 600 }}>Department page →</Link></h3>
@@ -63,7 +64,7 @@ export function ExploreLab() {
       {data && <Crumb to={`/explore/c/${data.lab.collegeCode.toLowerCase()}`}>{data.lab.collegeName}</Crumb>}
       {error ? <Err error={error} /> : !data ? <Loading /> : (
         <>
-          <Badge tone="primary">{data.lab.department}</Badge><h1 style={{ fontSize: '2rem', marginTop: 'var(--s-2)' }}>{data.lab.name}</h1>
+          <div className="row"><Badge tone="primary">{data.lab.department}</Badge><span className="spacer" /><Link to={`/explore/lab/${id}/record`} className="btn btn-ghost"><FileText size={14} /> Lab record (PDF)</Link></div><h1 style={{ fontSize: '2rem', marginTop: 'var(--s-2)' }}>{data.lab.name}</h1>
           <p className="muted" style={{ maxWidth: '70ch' }}>{data.lab.description}{[data.lab.building, data.lab.floor && `Floor ${data.lab.floor}`, data.lab.room && `Room ${data.lab.room}`].filter(Boolean).length ? ` · ${[data.lab.building, data.lab.floor && `Floor ${data.lab.floor}`, data.lab.room && `Room ${data.lab.room}`].filter(Boolean).join(', ')}` : ''}{data.lab.accessibility ? ` · Access: ${data.lab.accessibility}` : ''}</p>
           <Card style={{ marginTop: 'var(--s-4)', maxWidth: '60ch' }}>
             <h3 style={{ fontSize: '1rem' }}>Lab coordinator</h3>

@@ -4,6 +4,8 @@ import './labs.css'
 function Value({ field, value }) {
   if (field.type === 'list') return <ul className="vlist">{value.map((x, i) => <li key={i}>{x}</li>)}</ul>
   if (field.type === 'kv') return <table className="kv"><tbody>{value.map((r, i) => <tr key={i}><th>{r.k}</th><td>{r.v}</td></tr>)}</tbody></table>
+  if (field.type === 'counts') return <span>{[value.repair && `${value.repair} need repair`, value.unused && `${value.unused} not in use`].filter(Boolean).join(', ')}{value.note ? ` (${value.note})` : ''}</span>
+  if (field.type === 'number' && field.unit === '₹') return <span>₹ {Number(value).toLocaleString('en-IN')}</span>
   if (field.type === 'url') return <a href={value} target="_blank" rel="noopener noreferrer">{value}</a>
   if (field.type === 'email') return <a href={`mailto:${value}`}>{value}</a>
   return <span style={{ whiteSpace: 'pre-wrap' }}>{value}{field.unit && field.type === 'number' ? ` ${field.unit}` : ''}</span>
@@ -11,7 +13,7 @@ function Value({ field, value }) {
 
 /** Read-only view of an equipment record, section by section. Used for internal review and for the public page. */
 export default function EquipmentSections({ sections, data, highValueLakhs }) {
-  return sections.filter((s) => !s.files).map((s) => {
+  return sections.filter((s) => s.fields.length).map((s) => {
     const rows = s.fields.filter((f) => visible(f, data, highValueLakhs) && !empty(data[f.key]))
     if (!rows.length) return null
     return (

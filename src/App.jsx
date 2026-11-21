@@ -16,6 +16,8 @@ import EquipmentFlow from './modules/labs/EquipmentFlow'
 import EquipmentView from './modules/labs/EquipmentView'
 import LabsOverview from './modules/labs/LabsOverview'
 import LabDetail from './modules/labs/LabDetail'
+import LabRecord from './modules/labs/LabRecord'
+import { CollegeEquipment, CollegeEquipmentDetail, PublicLabRecord } from './modules/labs/PublicEquipment'
 import { ExploreCollege, ExploreColleges, ExploreDepartment, ExploreEquipment, ExploreLab } from './modules/labs/Explore'
 import AdminConsole from './modules/admin/AdminConsole'
 import { EventPublic, EventsHome } from './modules/events/EventsPublic'
@@ -45,6 +47,9 @@ export default function App() {
           <Route path="/explore" element={<ExploreColleges />} />
           <Route path="/explore/c/:code" element={<ExploreCollege />} />
           <Route path="/explore/c/:code/d/:dept" element={<ExploreDepartment />} />
+          <Route path="/explore/c/:code/equipment" element={<CollegeEquipment />} />
+          <Route path="/explore/c/:code/equipment/:slug" element={<CollegeEquipmentDetail />} />
+          <Route path="/explore/lab/:id/record" element={<PublicLabRecord />} />
           <Route path="/explore/lab/:id" element={<ExploreLab />} />
           <Route path="/explore/equipment/:id" element={<ExploreEquipment />} />
           <Route path="/events" element={<EventsHome />} />
@@ -61,6 +66,8 @@ export default function App() {
             <Route path="lab" element={<RequireAuth roles={['lab_incharge']}><LabHome /></RequireAuth>} />
             <Route path="lab/equipment/:id/fill" element={<RequireAuth roles={['lab_incharge']}><EquipmentFlow /></RequireAuth>} />
             <Route path="lab-details" element={<RequireAuth roles={['hod', 'principal', 'admin']}><LabsOverview /></RequireAuth>} />
+            <Route path="lab/record" element={<RequireAuth roles={['lab_incharge']}><LabRecord /></RequireAuth>} />
+            <Route path="lab-details/:labId/record" element={<RequireAuth roles={['hod', 'principal', 'admin']}><LabRecord /></RequireAuth>} />
             <Route path="lab-details/:labId" element={<RequireAuth roles={['hod', 'principal', 'admin', 'lab_incharge']}><LabDetail /></RequireAuth>} />
             <Route path="equipment/:id" element={<EquipmentView />} />
             <Route path="events" element={<RequireAuth roles={['hod', 'principal', 'admin']}><EventsManage /></RequireAuth>} />

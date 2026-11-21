@@ -32,6 +32,7 @@ async function upgradeEquipment() {
   await pool.query("ALTER TABLE users MODIFY role ENUM('student','faculty','external','lab_incharge','event_coordinator','event_member','hod','principal','admin') NOT NULL DEFAULT 'student'");
   for (const [t, col, def] of [["users", "event_id", "INT UNSIGNED NULL"], ["labs", "contact_name", "VARCHAR(160)"], ["labs", "contact_email", "VARCHAR(190)"], ["labs", "contact_phone", "VARCHAR(40)"], ["colleges", "address", "VARCHAR(300)"]])
     if (!(await columnExists(t, col))) await pool.query(`ALTER TABLE ${t} ADD COLUMN ${col} ${def}`);
+  if (!(await columnExists("equipment_catalog", "type_key"))) await pool.query("ALTER TABLE equipment_catalog ADD COLUMN type_key VARCHAR(40) NULL");
   if (!(await indexExists("equipment", "idx_equipment_lab"))) await pool.query("ALTER TABLE equipment ADD KEY idx_equipment_lab (lab_id, status)");
 }
 

@@ -21,7 +21,7 @@ function Overview({ data }) {
     { key: 'equipment', label: 'Equipment', render: (c) => `${c.approved} published · ${c.awaiting} awaiting · ${c.equipment} total` },
     { key: 'events', label: 'Events', render: (c) => `${c.publishedEvents} published · ${c.events} total` },
     { key: 'files', label: 'Files' },
-    { key: 'go', label: 'Open', render: (c) => <span className="adm-links"><Link to={`/c/${low(c.code)}/lab-details`}>Labs</Link><Link to={`/c/${low(c.code)}/events`}>Events</Link><Link to={`/c/${low(c.code)}/principal`}>Principal</Link><Link to={`/explore/c/${low(c.code)}`}>Public labs</Link></span> },
+    { key: 'go', label: 'Open', render: (c) => <span className="adm-links"><Link to={`/c/${low(c.code)}/dashboard`}>Dashboard</Link><Link to={`/c/${low(c.code)}/lab-details`}>Labs</Link><Link to={`/c/${low(c.code)}/events`}>Events</Link><Link to={`/c/${low(c.code)}/principal`}>Principal</Link><Link to={`/explore/c/${low(c.code)}`}>Public labs</Link></span> },
   ]
   return (
     <>

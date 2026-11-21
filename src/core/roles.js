@@ -10,8 +10,8 @@ export function homePath(u) {
   const c = u.college?.code?.toLowerCase()
   switch (u.role) {
     case 'admin': return '/admin'
-    case 'principal': return `/c/${c}/lab-details`
-    case 'hod': return `/c/${c}/lab-details`
+    case 'principal': return `/c/${c}/dashboard`
+    case 'hod': return `/c/${c}/dashboard`
     case 'lab_incharge': return `/c/${c}/lab`
     case 'event_coordinator':
     case 'event_member': return u.eventId ? `/c/${c}/event/${u.eventId}` : '/portal'

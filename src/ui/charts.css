@@ -1,0 +1,15 @@
+.barlist { list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+.bl-row { display:grid; grid-template-columns:minmax(80px,34%) 1fr auto; gap:10px; align-items:center; width:100%; background:none; border:0; padding:4px 0; text-align:left; font:inherit; color:inherit; cursor:pointer; border-radius:var(--r-sm); }
+.bl-row:disabled { cursor:default; } .bl-row:not(:disabled):hover { background:var(--c-primary-soft); }
+.bl-label { font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .bl-val { font:700 13px var(--f-body); min-width:2.5ch; text-align:right; }
+.bl-track, .st-track { height:12px; background:var(--c-surface-2); border-radius:var(--r-pill); overflow:hidden; display:flex; }
+.bl-track i { display:block; height:100%; background:linear-gradient(90deg, var(--c-primary), var(--c-secondary-brand)); border-radius:var(--r-pill); }
+.st-row { display:grid; grid-template-columns:minmax(80px,28%) 1fr auto; gap:10px; align-items:center; margin:6px 0; } .st-track i { display:block; height:100%; }
+.cols { display:flex; gap:8px; align-items:flex-end; height:190px; padding-top:18px; overflow-x:auto; }
+.col { flex:1; min-width:34px; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:4px; position:relative; }
+.col i { display:block; width:100%; max-width:46px; background:linear-gradient(180deg, var(--c-secondary-brand), var(--c-primary)); border-radius:6px 6px 2px 2px; }
+.col-val { font:700 11px var(--f-body); } .col-label { font-size:11px; color:var(--c-muted); white-space:nowrap; }
+.donut-wrap { display:flex; gap:var(--s-4); align-items:center; flex-wrap:wrap; } .donut { width:150px; height:150px; flex:none; }
+.donut-n { font:800 22px var(--f-head); fill:var(--c-ink); } .donut-s { font:600 9px var(--f-body); fill:var(--c-muted); text-transform:uppercase; letter-spacing:.05em; }
+.legend { list-style:none; margin:0; padding:0; display:grid; gap:6px; font-size:13px; } .legend li { display:flex; align-items:center; gap:8px; } .legend i { width:12px; height:12px; border-radius:4px; display:inline-block; }
+.row-legend { display:flex; flex-wrap:wrap; gap:14px; margin-bottom:6px; }

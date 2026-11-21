@@ -18,7 +18,7 @@ export const MODULES = [
   { key: 'projects', path: '/projects', label: 'Projects & R&D', icon: FolderKanban, phase: 'Phase 5', status: 'planned', needsLogin: true,
     summary: 'Track consultancy, academic and research projects, publications, patents and grants.',
     features: ['Consultancy and academic project records', 'Research papers, patents and citations', 'Seed and sponsored projects, grants and financial aid', 'Faculty research profiles', 'Crossref / OpenAlex / ORCID integration'] },
-  { key: 'dashboards', path: '/dashboards', label: 'Dashboards', icon: LayoutDashboard, phase: 'Phase 6', status: 'planned', needsLogin: true,
+  { key: 'dashboards', path: '/dashboards', label: 'Dashboards', icon: LayoutDashboard, phase: 'Phase 6', status: 'partial', needsLogin: true,
     summary: 'Role-based analytics for Admin, HOD, Lab In-charge, Principal and the public.',
     features: ['Real-time KPIs, charts and graphs', 'Equipment status, utilisation and investment', 'Department and institution views', 'Reports for audits and accreditation'] },
   { key: 'admin', path: '/admin', label: 'Administration', icon: ShieldCheck, phase: 'Phase 1', status: 'live', needsLogin: true, roles: ['admin'],

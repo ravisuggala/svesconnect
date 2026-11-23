@@ -12,7 +12,7 @@ async function scopeFor(req, wantPublic) {
   const [[u]] = await pool.query("SELECT u.id, u.role, u.college_id, u.department, u.lab_id, u.must_change_password, c.code, c.name AS college FROM users u JOIN colleges c ON c.id = u.college_id WHERE u.id = ? AND u.status = 'active'", [req.user.id]);
   if (!u || u.must_change_password) return pub;
   if (u.role === "admin") return { mode: "all", label: "All SVES colleges (including pending records)" };
-  if (u.role === "principal") return { mode: "college", collegeId: u.college_id, label: `${u.college}, all departments` };
+  if (u.role === "principal" || u.role === "college_admin") return { mode: "college", collegeId: u.college_id, label: `${u.college}, all departments` };
   if (u.role === "hod") return { mode: "college", collegeId: u.college_id, department: u.department, label: `${u.code}, ${u.department} department` };
   if (u.role === "lab_incharge") return { mode: "college", collegeId: u.college_id, labId: u.lab_id, label: `${u.code}, your lab` };
   return pub;

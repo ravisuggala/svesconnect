@@ -11,7 +11,7 @@ const KEY = 'sves_chat_messages'
 
 export default function Chatbot() {
   const { user } = useAuth()
-  const internal = user && ['principal', 'hod', 'lab_incharge', 'admin'].includes(user.role)
+  const internal = user && ['principal', 'hod', 'lab_incharge', 'admin', 'college_admin'].includes(user.role)
   const [pubChoice, setPub] = useState(null) // null = follow the default for this user (the user loads after the first render)
   const pub = pubChoice ?? !internal
   const [messages, setMessages] = useState(() => {

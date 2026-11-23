@@ -1,5 +1,5 @@
 export const ROLE_LABEL = {
-  admin: 'Administrator', principal: 'Principal', hod: 'Head of Department', lab_incharge: 'Lab Coordinator', event_coordinator: 'Event Coordinator', event_member: 'Event Team Member',
+  admin: 'Administrator', college_admin: 'College Administrator', principal: 'Principal', hod: 'Head of Department', lab_incharge: 'Lab Coordinator', event_coordinator: 'Event Coordinator', event_member: 'Event Team Member',
   faculty: 'Faculty', student: 'Student', external: 'External',
 }
 
@@ -10,6 +10,7 @@ export function homePath(u) {
   const c = u.college?.code?.toLowerCase()
   switch (u.role) {
     case 'admin': return '/admin'
+    case 'college_admin': return `/c/${c}/dashboard`
     case 'principal': return `/c/${c}/dashboard`
     case 'hod': return `/c/${c}/dashboard`
     case 'lab_incharge': return `/c/${c}/lab`

@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom'
 import { KeyRound, Plus, Search, Trash2, Unlock, UserCheck, UserX } from 'lucide-react'
 import { Badge, Button, Card, EmptyState, Input, Modal, Select, Table, useDialog, useToast } from '../../ui'
 import { ROLE_LABEL } from '../../core/roles'
+import { useAuth } from '../../core/auth'
 import { api } from '../../core/api'
 import './admin.css'
 
 // Administrator console: every college, user, lab, event and document in one place.
-const ROLE_OPTIONS = ['principal', 'hod', 'lab_incharge', 'event_coordinator', 'event_member', 'admin']
+const ROLE_OPTIONS = ['principal', 'hod', 'lab_incharge', 'event_coordinator', 'event_member', 'college_admin', 'admin']
 const low = (c) => String(c).toLowerCase()
 const EMPTY = { college: '', role: 'hod', email: '', name: '', department: '', labName: '', eventId: '', password: '' }
 
@@ -31,16 +32,34 @@ function Overview({ data }) {
   )
 }
 
-function Users({ colleges }) {
+/** Where the public sees this college: the college page, equipment list, events, and each department / lab page. */
+function PublicLinks({ code }) {
+  const [d, setD] = useState(null)
+  useEffect(() => { api(`/public/colleges/${code}`).then(setD).catch(() => setD({ departments: [] })) }, [code])
+  return (
+    <Card style={{ marginTop: 'var(--s-4)' }}>
+      <h3 style={{ marginTop: 0 }}>How the public sees your college</h3>
+      <div className="adm-links" style={{ flexWrap: 'wrap', gap: 12 }}>
+        <Link to={`/explore/c/${code}`}>College page</Link><Link to={`/explore/c/${code}/equipment`}>Equipment list (all departments)</Link><Link to="/events">Public events</Link><Link to="/explore">All colleges</Link>
+      </div>
+      {d && d.departments.length > 0 && <div style={{ marginTop: 'var(--s-3)' }}>{d.departments.map((x) => (
+        <p key={x.department} style={{ margin: '6px 0' }}><b>{x.department}</b>: <Link to={`/explore/c/${code}/d/${encodeURIComponent(x.department)}`}>department page</Link>{x.labs.map((l) => <span key={l.id}> · <Link to={`/explore/lab/${l.id}`}>{l.name}</Link></span>)}</p>))}</div>}
+      {d && !d.departments.length && <p className="muted">Nothing is published yet. Equipment appears here after the HOD approves it.</p>}
+    </Card>
+  )
+}
+
+function Users({ colleges, scoped, ownCode }) {
   const toast = useToast()
   const dialog = useDialog()
+  const roleOptions = scoped ? ROLE_OPTIONS.filter((r) => r !== 'admin') : ROLE_OPTIONS
   const [filter, setFilter] = useState({ college: '', role: '', status: '', q: '' })
   const [q, setQ] = useState('')
   const [users, setUsers] = useState([])
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(EMPTY)
+  const [form, setForm] = useState({ ...EMPTY, college: ownCode || '' })
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
   const [creds, setCreds] = useState(null)
@@ -62,9 +81,9 @@ function Users({ colleges }) {
   const create = async (ev) => {
     ev.preventDefault(); setBusy(true); setErrors({})
     try {
-      const body = { ...form, college: form.role === 'admin' ? 'CENTRAL' : form.college }
+      const body = { ...form, college: scoped ? ownCode : form.role === 'admin' ? 'CENTRAL' : form.college }
       const r = await api('/admin/users', { method: 'POST', body })
-      setOpen(false); setForm(EMPTY); setCreds({ email: r.user.email, password: r.initialPassword, college: r.user.collegeName }); load()
+      setOpen(false); setForm({ ...EMPTY, college: ownCode || '' }); setCreds({ email: r.user.email, password: r.initialPassword, college: r.user.collegeName }); load()
     } catch (err) { setErrors(err.fields || { form: err.message }) } finally { setBusy(false) }
   }
   const act = async (u, action, extra = {}) => {
@@ -82,7 +101,7 @@ function Users({ colleges }) {
   const columns = [
     { key: 'email', label: 'Account', render: (u) => <span><b>{u.name}</b><br /><small className="muted">{u.email}</small></span> },
     { key: 'college', label: 'College', render: (u) => u.college || '—' },
-    { key: 'role', label: 'Role', render: (u) => <Badge tone={u.role === 'admin' ? 'primary' : ''}>{ROLE_LABEL[u.role] || u.role}</Badge> },
+    { key: 'role', label: 'Role', render: (u) => <Badge tone={u.role === 'admin' || u.role === 'college_admin' ? 'primary' : ''}>{ROLE_LABEL[u.role] || u.role}</Badge> },
     { key: 'where', label: 'Department / lab / event', render: where },
     { key: 'status', label: 'Status', render: (u) => <Badge tone={u.status === 'active' ? 'success' : 'error'}>{u.status === 'active' ? 'Active' : 'Disabled'}</Badge> },
     { key: 'act', label: 'Actions', render: (u) => (
@@ -90,15 +109,15 @@ function Users({ colleges }) {
         <Button variant="ghost" size="sm" title="Unlock: enable and reset to the default password" onClick={async () => { if (await dialog.confirm({ title: 'Unlock this account?', message: `${u.email} will be enabled and the password goes back to the default.`, confirmText: 'Unlock' })) act(u, 'unlock') }}><Unlock size={14} /></Button>
         <Button variant="ghost" size="sm" title="Set a password" onClick={() => setPw({ u, password: '' })}><KeyRound size={14} /></Button>
         <Button variant="ghost" size="sm" title={u.status === 'active' ? 'Disable' : 'Enable'} onClick={() => act(u, u.status === 'active' ? 'disable' : 'enable')}>{u.status === 'active' ? <UserX size={14} /> : <UserCheck size={14} />}</Button>
-        <Button variant="ghost" size="sm" onClick={() => setEdit({ u, name: u.name, email: u.email })}>Edit</Button>
+        <Button variant="ghost" size="sm" onClick={() => setEdit({ u, name: u.name, email: u.email, department: u.department || '', labName: u.labName || '' })}>Edit</Button>
         <Button variant="ghost" size="sm" title="Delete" onClick={() => act(u, 'delete')}><Trash2 size={14} /></Button>
       </span>) },
   ]
   return (
     <>
       <div className="adm-filters">
-        <Select label="College" value={filter.college} onChange={(e) => setFilter({ ...filter, college: e.target.value })} options={[{ value: '', label: 'All colleges' }, ...colleges.map((c) => ({ value: c.code, label: c.code }))]} />
-        <Select label="Role" value={filter.role} onChange={(e) => setFilter({ ...filter, role: e.target.value })} options={[{ value: '', label: 'All roles' }, ...ROLE_OPTIONS.map((r) => ({ value: r, label: ROLE_LABEL[r] }))]} />
+        {!scoped && <Select label="College" value={filter.college} onChange={(e) => setFilter({ ...filter, college: e.target.value })} options={[{ value: '', label: 'All colleges' }, ...colleges.map((c) => ({ value: c.code, label: c.code }))]} />}
+        <Select label="Role" value={filter.role} onChange={(e) => setFilter({ ...filter, role: e.target.value })} options={[{ value: '', label: 'All roles' }, ...roleOptions.map((r) => ({ value: r, label: ROLE_LABEL[r] }))]} />
         <Select label="Status" value={filter.status} onChange={(e) => setFilter({ ...filter, status: e.target.value })} options={[{ value: '', label: 'Any' }, { value: 'active', label: 'Active' }, { value: 'disabled', label: 'Disabled' }]} />
         <Input label="Search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, email or department" />
         <Button onClick={() => setOpen(true)}><Plus size={16} /> New account</Button>
@@ -107,8 +126,8 @@ function Users({ colleges }) {
 
       <Modal open={open} title="New account" onClose={() => setOpen(false)}>
         <form onSubmit={create} noValidate>
-          <Select label="Type of user" value={form.role} onChange={(e) => setForm({ ...EMPTY, role: e.target.value, college: e.target.value === 'admin' ? 'CENTRAL' : form.college })} options={ROLE_OPTIONS.map((r) => ({ value: r, label: ROLE_LABEL[r] }))} error={errors.role} />
-          {form.role !== 'admin' && <Select label="College" value={form.college} onChange={(e) => setForm({ ...form, college: e.target.value, eventId: '' })} options={collegeOpts(false)} error={errors.college} />}
+          <Select label="Type of user" value={form.role} onChange={(e) => setForm({ ...EMPTY, role: e.target.value, college: scoped ? ownCode : e.target.value === 'admin' ? 'CENTRAL' : form.college })} options={roleOptions.map((r) => ({ value: r, label: ROLE_LABEL[r] }))} error={errors.role} />
+          {!scoped && form.role !== 'admin' && <Select label="College" value={form.college} onChange={(e) => setForm({ ...form, college: e.target.value, eventId: '' })} options={collegeOpts(false)} error={errors.college} />}
           <Input label="Email" type="email" value={form.email} onChange={set('email')} error={errors.email} />
           <Input label="Name (optional)" value={form.name} onChange={set('name')} />
           {['hod', 'lab_incharge'].includes(form.role) && <Input label="Department" value={form.department} onChange={set('department')} error={errors.department} />}
@@ -121,9 +140,11 @@ function Users({ colleges }) {
       </Modal>
 
       <Modal open={!!edit} title="Edit account" onClose={() => setEdit(null)}>
-        {edit && <form onSubmit={(e) => { e.preventDefault(); act(edit.u, 'update', { name: edit.name, email: edit.email }) }}>
+        {edit && <form onSubmit={(e) => { e.preventDefault(); act(edit.u, 'update', { name: edit.name, email: edit.email, department: edit.department, labName: edit.labName }) }}>
           <Input label="Name" value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
           <Input label="Email" type="email" value={edit.email} onChange={(e) => setEdit({ ...edit, email: e.target.value })} />
+          {edit.u.role === 'hod' && <Input label="Department" value={edit.department} onChange={(e) => setEdit({ ...edit, department: e.target.value })} hint="Renaming moves this department's labs, equipment, coordinators and events with it." />}
+          {edit.u.role === 'lab_incharge' && <Input label="Lab name" value={edit.labName} onChange={(e) => setEdit({ ...edit, labName: e.target.value })} />}
           <div className="row" style={{ justifyContent: 'flex-end' }}><Button type="button" variant="ghost" onClick={() => setEdit(null)}>Cancel</Button><Button type="submit">Save</Button></div>
         </form>}
       </Modal>
@@ -178,19 +199,24 @@ function Labs() {
 
 export default function AdminConsole() {
   const toast = useToast()
+  const { user } = useAuth()
+  const scoped = user.role === 'college_admin'
+  const own = user.college?.code
   const [tab, setTab] = useState('overview')
   const [summary, setSummary] = useState(null)
   useEffect(() => { api('/admin/summary').then(setSummary).catch((e) => toast(e.message, 'error')) }, [toast])
   const [central, setCentral] = useState([])
-  useEffect(() => { api('/colleges').then((r) => setCentral(r.colleges)).catch(() => {}) }, [])
+  useEffect(() => { api('/colleges').then((r) => setCentral(scoped ? r.colleges.filter((c) => c.code === own) : r.colleges)).catch(() => {}) }, [scoped, own])
   const tabs = [['overview', 'Overview'], ['users', 'Accounts'], ['labs', 'Labs & equipment'], ['events', 'Events & documents']]
   return (
     <div className="fade-up">
-      <h2 style={{ marginBottom: 4 }}>Administrator console</h2>
-      <p className="muted" style={{ marginTop: 0 }}>Everything across all SVES colleges: accounts and credentials, labs and equipment, events and their documents. Open any college to work inside it exactly as its Principal would; you can approve equipment and publish events anywhere.</p>
+      <h2 style={{ marginBottom: 4 }}>{scoped ? `College administration · ${user.college.name}` : 'Administrator console'}</h2>
+      <p className="muted" style={{ marginTop: 0 }}>{scoped
+        ? 'Everything in your college: accounts and passwords (Principal, HODs, lab coordinators, event coordinators), labs and equipment, events and their documents, and the public pages. Open the dashboard, labs or events to work inside the college with full administrator rights.'
+        : 'Everything across all SVES colleges: accounts and credentials, labs and equipment, events and their documents. Open any college to work inside it exactly as its Principal would; you can approve equipment and manage events.'}</p>
       <div className="ev-tabs">{tabs.map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
-      {tab === 'overview' && (summary ? <Overview data={summary} /> : <Card>Loading…</Card>)}
-      {tab === 'users' && <Users colleges={central} />}
+      {tab === 'overview' && (summary ? <><Overview data={summary} />{scoped && <PublicLinks code={low(own)} />}</> : <Card>Loading…</Card>)}
+      {tab === 'users' && <Users colleges={central} scoped={scoped} ownCode={scoped ? own : ''} />}
       {tab === 'labs' && <Labs />}
       {tab === 'events' && <Events />}
     </div>

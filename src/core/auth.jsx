@@ -35,7 +35,8 @@ export function RequireAuth({ roles, allowDefaultPassword, children }) {
   if (!ready) return <Wait />
   if (!user) return <Navigate to="/login" state={{ from: loc.pathname }} replace />
   if (user.mustChangePassword && !allowDefaultPassword) return <Navigate to="/change-password" replace />
-  if (roles && !roles.includes(user.role)) return <Navigate to={homePath(user)} replace />
+  // a college administrator has administrator rights inside their own college
+  if (roles && !roles.includes(user.role) && !(user.role === 'college_admin' && roles.includes('admin'))) return <Navigate to={homePath(user)} replace />
   return children
 }
 

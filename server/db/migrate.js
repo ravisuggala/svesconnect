@@ -5,7 +5,7 @@ require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env"), quiet
 const mysql = require("mysql2/promise");
 const pool = require("./pool");
 const { hashPassword } = require("../core/security");
-const { COLLEGES, defaultPassword } = require("../core/org");
+const { COLLEGES, defaultPassword, collegeAdminEmail } = require("../core/org");
 
 const has = async (sql, params) => (await pool.query(sql, params))[0].length > 0;
 const columnExists = (t, c) => has("SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?", [t, c]);
@@ -29,7 +29,7 @@ async function upgradeEquipment() {
     updated_at: "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
   };
   for (const [col, def] of Object.entries(add)) if (!(await columnExists("equipment", col))) await pool.query(`ALTER TABLE equipment ADD COLUMN ${col} ${def}`);
-  await pool.query("ALTER TABLE users MODIFY role ENUM('student','faculty','external','lab_incharge','event_coordinator','event_member','hod','principal','admin') NOT NULL DEFAULT 'student'");
+  await pool.query("ALTER TABLE users MODIFY role ENUM('student','faculty','external','lab_incharge','event_coordinator','event_member','hod','principal','college_admin','admin') NOT NULL DEFAULT 'student'");
   for (const [t, col, def] of [["users", "event_id", "INT UNSIGNED NULL"], ["labs", "contact_name", "VARCHAR(160)"], ["labs", "contact_email", "VARCHAR(190)"], ["labs", "contact_phone", "VARCHAR(40)"], ["colleges", "address", "VARCHAR(300)"]])
     if (!(await columnExists(t, col))) await pool.query(`ALTER TABLE ${t} ADD COLUMN ${col} ${def}`);
   if (!(await columnExists("equipment_catalog", "type_key"))) await pool.query("ALTER TABLE equipment_catalog ADD COLUMN type_key VARCHAR(40) NULL");
@@ -76,6 +76,15 @@ async function upgradeEquipment() {
     if (!(await has("SELECT 1 FROM users WHERE college_id = ? AND email = ?", [byCode.CENTRAL.id, e]))) {
       await pool.query("INSERT INTO users (college_id, name, email, password_hash, role, must_change_password) VALUES (?,?,?,?, 'admin', 0)", [byCode.CENTRAL.id, "Administrator", e, hashPassword(ADMIN_PASSWORD)]);
       console.log(`Admin user created: ${e}`);
+    }
+  }
+
+  // One administrator login per college (full rights inside that college only). Created once; an existing one is never overwritten.
+  for (const c of COLLEGES.filter((x) => !x.central)) {
+    const e = collegeAdminEmail(c);
+    if (!(await has("SELECT 1 FROM users WHERE college_id = ? AND email = ?", [byCode[c.code].id, e]))) {
+      await pool.query("INSERT INTO users (college_id, name, email, password_hash, role, must_change_password) VALUES (?,?,?,?, 'college_admin', 0)", [byCode[c.code].id, `${c.code} Administrator`, e, hashPassword(defaultPassword())]);
+      console.log(`College administrator created: ${e} (${c.code})`);
     }
   }
 

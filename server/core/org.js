@@ -13,10 +13,13 @@ const COLLEGES = [
   { code: "VSCH", principal: "principal@vishnuschool.edu.in", name: "Vishnu School", city: "Bhimavaram" },
 ];
 
+// Each college gets its own administrator login (role college_admin): admin@<same domain as the principal; VWU uses vwu.edu.in>.
+const collegeAdminEmail = (c) => `admin@${c.code === "VWU" ? "vwu.edu.in" : String(c.principal || "").split("@")[1]}`;
+
 // Hierarchy: admin creates/resets principals, principals create HODs, HODs create lab coordinators (role lab_incharge).
 const CHILD_ROLE = { admin: "principal", principal: "hod", hod: "lab_incharge" };
 
 // Initial password for every account created by the hierarchy; users may change it any time (it is not forced).
 const defaultPassword = () => process.env.DEFAULT_PASSWORD || "svesconnect@123";
 
-module.exports = { COLLEGES, CHILD_ROLE, defaultPassword };
+module.exports = { COLLEGES, CHILD_ROLE, defaultPassword, collegeAdminEmail };

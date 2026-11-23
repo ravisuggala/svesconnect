@@ -11,6 +11,8 @@ const collegeContext = [requireAuth, async (req, res, next) => {
     if (!me) return res.status(401).json({ error: "Session expired." });
     if (me.role !== "admin" && me.college_id !== college.id) return res.status(403).json({ error: "You do not have access to this college." });
     if (me.must_change_password) return res.status(403).json({ error: "Please change your default password first." });
+    // A college administrator has full administrator rights, but only inside their own college (checked just above); inside it they are treated as the administrator.
+    if (me.role === "college_admin") { me.role = "admin"; me.college_admin = true; }
     req.college = college; req.me = me;
     next();
   } catch (err) { console.error("college ctx:", err.message); res.status(500).json({ error: "Server error." }); }

@@ -7,7 +7,7 @@ import SearchBox from './SearchBox'
 
 export default function SearchPage() {
   const { user } = useAuth()
-  const internal = user && ['principal', 'hod', 'lab_incharge', 'admin'].includes(user.role)
+  const internal = user && ['principal', 'hod', 'lab_incharge', 'admin', 'college_admin'].includes(user.role)
   const [pubChoice, setPub] = useState(null) // null = default for this user
   const pub = pubChoice ?? !internal
   return (

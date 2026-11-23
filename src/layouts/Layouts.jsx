@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Outlet } from 'react-router-dom'
-import { Bot, CalendarDays, FlaskConical, Home, KeyRound, LayoutDashboard, LayoutGrid, LogIn, LogOut, Users } from 'lucide-react'
+import { Bot, CalendarDays, FlaskConical, Globe, Home, KeyRound, LayoutDashboard, LayoutGrid, LogIn, LogOut, ShieldCheck, Users } from 'lucide-react'
 import { Button, Navbar, Sidebar } from '../ui'
 import { useAuth } from '../core/auth'
 import { MODULES } from '../core/modules'
@@ -40,6 +40,7 @@ export function PortalLayout() {
   const { user } = useAuth()
   const c = user?.college?.code?.toLowerCase()
   const mine = !user ? [] : {
+    college_admin: [{ to: `/c/${c}/dashboard`, label: 'Dashboard', icon: LayoutDashboard }, { to: '/admin', label: 'Administration', icon: ShieldCheck }, { to: `/c/${c}/lab-details`, label: 'Labs & equipment', icon: FlaskConical }, { to: `/c/${c}/events`, label: 'Events & projects', icon: CalendarDays }, { to: `/c/${c}/principal`, label: 'Principal login', icon: Users }, { to: `/explore/c/${c}`, label: 'Public college page', icon: Globe }],
     principal: [{ to: `/c/${c}/dashboard`, label: 'Dashboard', icon: LayoutDashboard }, { to: `/c/${c}/lab-details`, label: 'Labs & equipment', icon: FlaskConical }, { to: `/c/${c}/events`, label: 'Events & projects', icon: CalendarDays }, { to: `/c/${c}/hods`, label: 'Heads of Department', icon: Users }],
     hod: [{ to: `/c/${c}/dashboard`, label: 'Dashboard', icon: LayoutDashboard }, { to: `/c/${c}/lab-details`, label: 'Labs & equipment', icon: FlaskConical }, { to: `/c/${c}/events`, label: 'Events & projects', icon: CalendarDays }, { to: `/c/${c}/labs`, label: 'Lab Coordinators', icon: Users }],
     lab_incharge: [{ to: `/c/${c}/lab`, label: 'My lab', icon: FlaskConical }],

@@ -156,4 +156,4 @@ collegeRouter.patch("/users/:id", needScope, async (req, res) => {
   res.status(400).json({ error: "Unknown action." });
 });
 
-module.exports = { publicRouter, adminRouter, collegeRouter };
+module.exports = { publicRouter, adminRouter, collegeRouter, updateAccount };

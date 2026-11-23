@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
   name                 VARCHAR(120) NOT NULL,
   email                VARCHAR(190) NOT NULL,
   password_hash        VARCHAR(255) NOT NULL,
-  role                 ENUM('student','faculty','external','lab_incharge','event_coordinator','event_member','hod','principal','admin') NOT NULL DEFAULT 'student',
+  role                 ENUM('student','faculty','external','lab_incharge','event_coordinator','event_member','hod','principal','college_admin','admin') NOT NULL DEFAULT 'student',
   department           VARCHAR(120) NULL,
   lab_name             VARCHAR(160) NULL,
   created_by           INT UNSIGNED NULL,

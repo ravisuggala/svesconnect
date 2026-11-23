@@ -40,7 +40,7 @@ function PublicLinks({ code }) {
     <Card style={{ marginTop: 'var(--s-4)' }}>
       <h3 style={{ marginTop: 0 }}>How the public sees your college</h3>
       <div className="adm-links" style={{ flexWrap: 'wrap', gap: 12 }}>
-        <Link to={`/explore/c/${code}`}>College page</Link><Link to={`/explore/c/${code}/equipment`}>Equipment list (all departments)</Link><Link to="/events">Public events</Link><Link to="/explore">All colleges</Link>
+        <Link to={`/explore/c/${code}`}>College page</Link><Link to={`/explore/c/${code}/equipment`}>Equipment list (all departments)</Link>
       </div>
       {d && d.departments.length > 0 && <div style={{ marginTop: 'var(--s-3)' }}>{d.departments.map((x) => (
         <p key={x.department} style={{ margin: '6px 0' }}><b>{x.department}</b>: <Link to={`/explore/c/${code}/d/${encodeURIComponent(x.department)}`}>department page</Link>{x.labs.map((l) => <span key={l.id}> · <Link to={`/explore/lab/${l.id}`}>{l.name}</Link></span>)}</p>))}</div>}

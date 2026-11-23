@@ -120,7 +120,7 @@ export default function Accounts({ kind }) {
         </form>}
       </Modal>
 
-      <Modal open={!!created} title={created?.reset ? 'Password reset' : 'Account ready'} onClose={() => setCreated(null)}>
+      <Modal size="sm" open={!!created} title={created?.reset ? 'Password reset' : 'Account ready'} onClose={() => setCreated(null)}>
         <p>Share these sign-in details. Choose <b>{data.college?.name || college.toUpperCase()}</b> on the login page.</p>
         <p style={{ fontFamily: 'var(--f-mono)', background: 'var(--c-surface-2)', padding: 'var(--s-3)', borderRadius: 'var(--r-md)' }}>{created?.email}<br />{created?.password}</p>
         <p className="muted">They can change it any time from “Change password”.</p>

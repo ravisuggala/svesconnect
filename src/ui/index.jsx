@@ -42,7 +42,7 @@ export function Select({ label, error, hint, options = [], ...p }) {
   )
 }
 
-export function Modal({ open, title, onClose, children }) {
+export function Modal({ open, title, onClose, size, children }) {
   useEffect(() => {
     if (!open) return
     const h = (e) => e.key === 'Escape' && onClose?.()
@@ -52,7 +52,7 @@ export function Modal({ open, title, onClose, children }) {
   if (!open) return null
   return (
     <div className="modal-back" onClick={onClose}>
-      <div className="modal" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+      <div className={`modal${size ? ` modal--${size}` : ''}`} role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head row"><h3 style={{ margin: 0 }}>{title}</h3><span className="spacer" />
           <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close"><X size={16} /></Button></div>
         <div className="modal-body">{children}</div>

@@ -149,14 +149,14 @@ function Users({ colleges, scoped, ownCode }) {
         </form>}
       </Modal>
 
-      <Modal open={!!pw} title={`Set password for ${pw?.u.email}`} onClose={() => setPw(null)}>
+      <Modal size="sm" open={!!pw} title={`Set password for ${pw?.u.email}`} onClose={() => setPw(null)}>
         {pw && <form onSubmit={(e) => { e.preventDefault(); act(pw.u, 'setPassword', { password: pw.password }) }}>
           <Input label="New password" value={pw.password} onChange={(e) => setPw({ ...pw, password: e.target.value })} hint="At least 8 characters." />
           <div className="row" style={{ justifyContent: 'flex-end' }}><Button type="button" variant="ghost" onClick={() => setPw(null)}>Cancel</Button><Button type="submit" disabled={pw.password.length < 8}>Set password</Button></div>
         </form>}
       </Modal>
 
-      <Modal open={!!creds} title={creds?.reset ? 'Sign-in details updated' : 'Account created'} onClose={() => setCreds(null)}>
+      <Modal size="sm" open={!!creds} title={creds?.reset ? 'Sign-in details updated' : 'Account created'} onClose={() => setCreds(null)}>
         <p>Share these sign-in details. On the login page choose <b>{creds?.college}</b>.</p>
         <p className="adm-cred">{creds?.email}<br />{creds?.password}</p>
         <p className="muted">They can change it any time from “Change password”.</p><Button onClick={() => setCreds(null)}>Done</Button>

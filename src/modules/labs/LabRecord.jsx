@@ -44,7 +44,7 @@ export default function LabRecord() {
           {!data.equipment.length && <p>No equipment has been added yet.</p>}
           {data.equipment.map((e) => (
             <div key={e.id} className="rec-eq">
-              <h2 style={{ fontSize: '1.2rem' }}>{e.name} <small className="muted">{e.type}</small> <Badge tone={STATUS[e.status]?.tone}>{STATUS[e.status]?.label}</Badge></h2>
+              <h2 style={{ fontSize: '1.2rem' }}>{e.name}{e.data?.variant ? ` · ${e.data.variant}` : ''} <small className="muted">{e.type}</small> <Badge tone={STATUS[e.status]?.tone}>{STATUS[e.status]?.label}</Badge></h2>
               <div className="rec-body">
                 {e.files.filter((f) => f.kind === 'photos').slice(0, 1).map((f) => <Photo key={f.id} college={college} file={f} alt={e.name} />)}
                 <div><EquipmentSections sections={e.sections} data={e.data} highValueLakhs={1.5} />

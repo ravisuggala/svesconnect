@@ -47,7 +47,7 @@ export default function LabHome() {
   }
 
   const columns = [
-    { key: 'name', label: 'Equipment', render: (e) => <Link to={`/c/${college}/equipment/${e.id}`}><b>{e.name}</b></Link> },
+    { key: 'name', label: 'Equipment', render: (e) => <Link to={`/c/${college}/equipment/${e.id}`}><b>{e.name}</b>{e.variant ? <small className="muted"> · {e.variant}</small> : null}</Link> },
     { key: 'templateKey', label: 'Type', render: (e) => templates.find((t) => t.key === e.templateKey)?.label || '' },
     { key: 'status', label: 'Status', render: (e) => <><Badge tone={STATUS[e.status].tone}>{e.published && e.status === 'draft' ? 'Editing' : STATUS[e.status].label}</Badge>{e.published && e.status !== 'approved' && <div className="muted" style={{ fontSize: 12 }}>Published version is still live</div>}</> },
     { key: 'go', label: '', render: (e) => <span className="row" style={{ gap: 12 }}><Link to={`/c/${college}/lab/equipment/${e.id}/fill`}>{e.status === 'draft' ? 'Continue' : e.status === 'rejected' ? 'Make changes' : 'Edit'}</Link><Link to={`/c/${college}/equipment/${e.id}`}>View</Link></span> },
@@ -59,7 +59,7 @@ export default function LabHome() {
       <div className="row"><div><Badge tone="primary">{user.college.name} · {user.department}</Badge><h2 style={{ margin: 'var(--s-2) 0 0' }}>{lab?.name || user.labName}</h2></div><span className="spacer" />
         <Button variant="ghost" onClick={() => setProfile({ description: lab.description || '', building: lab.building || '', floor: lab.floor || '', room: lab.room || '', accessibility: lab.accessibility || '', contact_name: lab.contact_name || '', contact_email: lab.contact_email || '', contact_phone: lab.contact_phone || '' })} disabled={!lab}><Pencil size={14} /> Lab profile</Button>
         <Button variant="ghost" as={Link} to={`/c/${college}/lab/record`}><FileText size={14} /> Lab record</Button>
-        <Button onClick={() => { setErrors({}); setKnown(null); setAdd({ name: '', purpose: '', templateKey: '' }) }} disabled={!lab}><Plus size={16} /> Add equipment</Button></div>
+        <Button onClick={() => { setErrors({}); setKnown(null); setAdd({ name: '', purpose: '', templateKey: '', variant: '' }) }} disabled={!lab}><Plus size={16} /> Add equipment</Button></div>
       {lab && <p className="muted" style={{ margin: 'var(--s-3) 0' }}>{lab.description || 'Add a short description of your lab in “Lab profile”.'}{(lab.building || lab.room) && ` · ${[lab.building, lab.floor && `Floor ${lab.floor}`, lab.room && `Room ${lab.room}`].filter(Boolean).join(', ')}`}</p>}
       <Card style={{ margin: 'var(--s-4) 0', background: 'var(--c-primary-soft)', borderColor: 'transparent' }}>
         <b>How it works:</b> add each equipment of your lab, then fill its details step by step. Everything is saved automatically, so you can stop and continue any time. When an equipment is ready, send it to your HOD. After the HOD approves, it appears on the public equipment pages.
@@ -76,6 +76,7 @@ export default function LabHome() {
           <Select label="Type of equipment" value={add.templateKey} disabled={!!known?.typeKey} onChange={(e) => setAdd({ ...add, templateKey: e.target.value })} error={errors.templateKey}
             hint="Pick the closest match. This only groups similar equipment together."
             options={[{ value: '', label: 'Select…' }, ...categories.map((c) => ({ value: c.key, label: c.label }))]} />
+          <Input label="Configuration (optional)" value={add.variant || ''} onChange={(e) => setAdd({ ...add, variant: e.target.value })} hint="Have the same equipment in different configurations? Add it again with its own configuration, e.g. “Intel i5, 8 GB RAM”." />
           <div className="field"><label htmlFor="eq-purpose">What is it used for?</label>
             <textarea id="eq-purpose" className="textarea" rows={2} value={add.purpose} disabled={!!known?.purpose} onChange={(e) => setAdd({ ...add, purpose: e.target.value })} placeholder="One or two lines, e.g. Measures voltage waveforms in electronic circuits" />
             {errors.purpose && <p role="alert" className="field-error">{errors.purpose}</p>}

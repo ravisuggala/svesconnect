@@ -125,7 +125,7 @@ export default function EquipmentFlow() {
       <header className="fp-head">
         <div>
           <div className="row"><Badge tone="primary">{state.equipment.labName}</Badge><Badge>{spec.template?.label}</Badge></div>
-          <h1>{data.name}</h1>
+          <h1>{data.name}{data.variant ? <small className="muted"> · {data.variant}</small> : null}</h1>
         </div>
         <div className="fp-head-r">
           <span className={`savebadge ${save}`} role="status" aria-live="polite">{save === 'saving' ? 'Saving…' : save === 'error' ? 'Not saved yet. Your answers are still here; we will keep trying.' : <><Check size={13} /> All changes saved</>}</span>

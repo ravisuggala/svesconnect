@@ -211,7 +211,7 @@ export default function EventWorkspace() {
         </form>}
       </Modal>
 
-      <Modal open={!!creds} title={creds?.reset ? 'Password reset' : 'Login created'} onClose={() => setCreds(null)}>
+      <Modal size="sm" open={!!creds} title={creds?.reset ? 'Password reset' : 'Login created'} onClose={() => setCreds(null)}>
         <p>Share these details. They choose <b>{college.toUpperCase()}</b> on the login page.</p>
         <p style={{ fontFamily: 'var(--f-mono)', background: 'var(--c-surface-2)', padding: 'var(--s-3)', borderRadius: 'var(--r-md)' }}>{creds?.email}<br />{creds?.password}</p>
         <p className="muted">They can change it any time from “Change password”.</p><Button onClick={() => setCreds(null)}>Done</Button>

@@ -67,7 +67,7 @@ export default function EventsManage() {
           <div className="row" style={{ justifyContent: 'flex-end' }}><Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" disabled={busy}>{busy ? 'Creating…' : 'Create event'}</Button></div>
         </form>
       </Modal>
-      <Modal open={!!created} title="Event created" onClose={() => setCreated(null)}>
+      <Modal size="sm" open={!!created} title="Event created" onClose={() => setCreated(null)}>
         {created?.none ? <p>The event is ready. Open it and use <b>People</b> to add its coordinator.</p> : <>
           <p>Share these sign-in details with the coordinator. They choose <b>{college.toUpperCase()}</b> on the login page.</p>
           <p style={{ fontFamily: 'var(--f-mono)', background: 'var(--c-surface-2)', padding: 'var(--s-3)', borderRadius: 'var(--r-md)' }}>{created?.email}<br />{created?.password}</p>

@@ -39,7 +39,7 @@ export default function EquipmentView() {
       <div className="row"><Badge tone="primary">{e.department} · {e.labName}</Badge><Badge tone={STATUS[e.status].tone}>{STATUS[e.status].label}</Badge><span className="spacer" />
         {can.edit && <Button as={Link} to={user.role === 'lab_incharge' ? `/c/${college}/lab/equipment/${e.id}/fill` : `/c/${college}/lab-details/equipment/${e.id}/edit`}><Pencil size={14} /> Edit</Button>}
         {can.delete && <Button variant="ghost" onClick={remove}><Trash2 size={14} /> Delete draft</Button>}</div>
-      <h2 style={{ margin: 'var(--s-3) 0 0' }}>{e.name}</h2>
+      <h2 style={{ margin: 'var(--s-3) 0 0' }}>{e.name}{e.data?.variant ? <small className="muted"> · {e.data.variant}</small> : null}</h2>
       <p className="muted">{spec.template?.label}</p>
       <div className="steps">{FLOW.map(([k, label], i) => <div key={k} className={`stp ${i < at ? 'done' : i === at && e.status !== 'rejected' ? 'now' : ''}`}>{i < at && <Check size={12} />} {label}</div>)}</div>
       {e.status === 'rejected' && <Card style={{ borderColor: 'var(--c-error)', background: 'var(--c-error-bg)', marginBottom: 'var(--s-4)' }}><b>Sent back for changes:</b> {e.reviewNote}</Card>}
@@ -54,7 +54,7 @@ export default function EquipmentView() {
         <section className="eq-sec"><h3>Documents & photos</h3>
           {spec.fileKinds.map((k) => { const list = files.filter((f) => f.kind === k.key); return list.length ? <div key={k.key} className="eq-row"><dt>{k.label}</dt><dd>{list.map((f) => <div key={f.id}><FileText size={14} /> <a href="#" onClick={(ev) => { ev.preventDefault(); openFile(`/c/${college}/files/${f.id}`).catch((er) => toast(er.message, 'error')) }}>{f.name}</a></div>)}</dd></div> : null })}
         </section>)}
-      <Modal open={!!reject} title="Send back to the coordinator" onClose={() => setReject(null)}>
+      <Modal size="sm" open={!!reject} title="Send back to the coordinator" onClose={() => setReject(null)}>
         {reject && <><div className="field"><label>What needs to be fixed?</label><textarea className="textarea" rows={4} value={reject.note} onChange={(ev) => setReject({ note: ev.target.value })} /></div>
           <div className="row" style={{ justifyContent: 'flex-end' }}><Button variant="ghost" onClick={() => setReject(null)}>Cancel</Button><Button disabled={reject.note.trim().length < 3} onClick={() => decide('reject', reject.note)}>Send back</Button></div></>}
       </Modal>

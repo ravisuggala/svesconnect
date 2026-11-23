@@ -52,7 +52,7 @@ export default function LabReview() {
       {d.equipment.map((e) => (
         <section key={e.id} className="rec-eq">
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            <h2 style={{ fontSize: '1.2rem', margin: 0 }}>{e.name}</h2><small className="muted">{e.type}</small>
+            <h2 style={{ fontSize: '1.2rem', margin: 0 }}>{e.name}{e.data?.variant ? ` · ${e.data.variant}` : ''}</h2><small className="muted">{e.type}</small>
             <Badge tone={STATUS[e.status]?.tone}>{STATUS[e.status]?.label}</Badge>
             {e.published && e.status !== 'approved' && <Badge>Published version live</Badge>}
             <span className="spacer" />
@@ -66,7 +66,7 @@ export default function LabReview() {
           {e.history.length > 0 && <p className="muted no-print" style={{ fontSize: 13 }}><History size={13} style={{ verticalAlign: '-2px' }} /> {e.history.map((h) => `${h.action}${h.detail ? ` (${h.detail.length > 80 ? `${h.detail.slice(0, 80)}…` : h.detail})` : ''} by ${h.who || h.role} on ${when(h.at)}`).slice(0, 3).join(' · ')}</p>}
         </section>))}
 
-      <Modal open={!!back} title={back ? `Send back: ${back.name}` : ''} onClose={() => setBack(null)}>
+      <Modal size="sm" open={!!back} title={back ? `Send back: ${back.name}` : ''} onClose={() => setBack(null)}>
         {back && <><div className="field"><label>What should the in-charge fix?</label><textarea className="textarea" rows={4} value={back.note} onChange={(ev) => setBack({ ...back, note: ev.target.value })} /></div>
           <div className="row" style={{ justifyContent: 'flex-end' }}><Button variant="ghost" onClick={() => setBack(null)}>Cancel</Button><Button disabled={back.note.trim().length < 3} onClick={sendBack}>Send back</Button></div></>}
       </Modal>

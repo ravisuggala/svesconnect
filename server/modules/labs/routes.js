@@ -147,7 +147,7 @@ collegeRouter.get("/overview", async (req, res) => {
 collegeRouter.get("/labs/:id", async (req, res) => {
   const lab = await loadLab(req, req.params.id);
   if (!lab) return res.status(404).json({ error: "Lab not found." });
-  const [rows] = await pool.query("SELECT id, name, template_key AS templateKey, status, (pub_data IS NOT NULL) AS published, review_note AS reviewNote, updated_at AS updatedAt FROM equipment WHERE lab_id = ? ORDER BY updated_at DESC", [lab.id]);
+  const [rows] = await pool.query("SELECT id, name, template_key AS templateKey, status, (pub_data IS NOT NULL) AS published, review_note AS reviewNote, JSON_UNQUOTE(JSON_EXTRACT(data, '$.variant')) AS variant, updated_at AS updatedAt FROM equipment WHERE lab_id = ? ORDER BY name, updated_at DESC", [lab.id]);
   res.json({ lab, equipment: rows, templates: templateList(), categories: categoryList() });
 });
 
@@ -179,14 +179,14 @@ collegeRouter.post("/labs/:id/equipment", async (req, res) => {
   const lab = await loadLab(req, req.params.id);
   if (!lab || !(req.me.role === "lab_incharge" && req.me.lab_id === lab.id)) return res.status(403).json({ error: "Only the lab coordinator can add equipment." });
   const { templateKey, name, purpose } = req.body || {};
+  const variant = String(req.body?.variant || "").trim().slice(0, 160);
   let nm = String(name || "").trim().replace(/\s+/g, " ").slice(0, 255);
   if (nm.length < 2) return res.status(400).json({ error: "Please type the name of the equipment.", fields: { name: "Please type the name of the equipment." } });
   // The college catalogue: reuse an existing name (keeps spelling, type and purpose the same everywhere) or add this one for everybody.
   const key = nameKey(nm);
   const [found] = await pool.query("SELECT id, name, purpose, type_key FROM equipment_catalog WHERE college_id = ? AND name_key = ?", [req.college.id, key]);
   const known = found[0];
-  const [dupe] = await pool.query("SELECT id FROM equipment WHERE lab_id = ? AND LOWER(name) = LOWER(?) LIMIT 1", [lab.id, known ? known.name : nm]);
-  if (dupe.length) return res.status(409).json({ error: `“${known ? known.name : nm}” is already in your lab. Open it from your list to add or change its details.`, fields: { name: "Already in your lab. Open it from your list." } });
+  // The same equipment may be added again in one lab (for example desktops with different configurations); the optional "configuration" tells them apart.
   let why = String(purpose || "").trim().slice(0, 1000);
   let type = String(templateKey || "");
   if (known) { nm = known.name; if (!why) why = known.purpose || ""; if (known.type_key && isCurrent(known.type_key)) type = known.type_key; }
@@ -195,7 +195,7 @@ collegeRouter.post("/labs/:id/equipment", async (req, res) => {
   const tpl = findTemplate(type);
   if (!known) await pool.query("INSERT IGNORE INTO equipment_catalog (college_id, name, name_key, purpose, type_key, created_by, department) VALUES (?,?,?,?,?,?,?)", [req.college.id, nm, key, why, type, req.me.id, lab.department]);
   else if (!known.purpose || !known.type_key) await pool.query("UPDATE equipment_catalog SET purpose = COALESCE(NULLIF(purpose, ''), ?), type_key = COALESCE(type_key, ?) WHERE id = ?", [why, type, known.id]);
-  const data = derive(type, { name: nm, description: why, quantity: 1, contact_name: req.me.name, contact_email: req.me.email, contact_department: lab.department });
+  const data = derive(type, { name: nm, description: why, variant, quantity: 1, contact_name: req.me.name, contact_email: req.me.email, contact_department: lab.department });
   const [r] = await pool.query(
     "INSERT INTO equipment (college_id, lab_id, department, template_key, name, category, data, status, created_by) VALUES (?,?,?,?,?,?,?, 'draft', ?)",
     [req.college.id, lab.id, lab.department, tpl.key, nm, tpl.label, JSON.stringify(data), req.me.id]);

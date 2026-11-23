@@ -32,13 +32,17 @@
 .pager { display:flex; align-items:center; justify-content:space-between; gap:var(--s-3); padding:var(--s-3) var(--s-4); font-size:13px; color:var(--c-muted); }
 .empty { text-align:center; padding:var(--s-7) var(--s-4); color:var(--c-muted); }
 .empty svg { color:var(--c-primary); opacity:.6; margin-bottom:var(--s-3); }
-/* Modal */
-.modal-back { position:fixed; inset:0; background:rgba(42,15,54,.55); display:flex; align-items:center; justify-content:center; z-index:1000; padding:var(--s-4); animation:fadeUp .2s both; }
-.modal { background:var(--c-surface); border-radius:var(--r-lg); box-shadow:var(--sh-3); width:100%; max-width:520px; max-height:min(92vh, calc(100dvh - 2rem)); display:flex; flex-direction:column; overflow:hidden; }
-/* the title and the close button stay visible; only the form scrolls, and the buttons stay in view at the bottom */
-.modal-head { flex:none; padding:var(--s-4) var(--s-5); border-bottom:1px solid var(--c-border); }
-.modal-body { padding:var(--s-4) var(--s-5) var(--s-5); overflow-y:auto; overscroll-behavior:contain; }
-.modal-body form > .row:last-child { position:sticky; bottom:calc(-1 * var(--s-5)); background:var(--c-surface); margin-top:var(--s-3); padding:var(--s-3) 0 var(--s-5); border-top:1px solid var(--c-border); z-index:1; }
+/* Modal = a side drawer: always exactly as tall as the browser window, so it can never be cut off or overlap the window edge. */
+.modal-back { position:fixed; top:0; right:0; bottom:0; left:0; background:rgba(42,15,54,.5); display:flex; justify-content:flex-end; z-index:1000; animation:modalFade .2s both; }
+.modal { background:var(--c-surface); width:min(540px,100%); height:100%; display:flex; flex-direction:column; overflow:hidden; box-shadow:-12px 0 40px rgba(42,15,54,.25); border-radius:var(--r-lg) 0 0 var(--r-lg); animation:modalSlide .22s ease both; }
+.modal-head { flex:none; padding:var(--s-4) var(--s-5); border-bottom:1px solid var(--c-border); background:var(--c-primary-soft); border-radius:var(--r-lg) 0 0 0; }
+.modal-head h3 { font-size:1.15rem; }
+.modal-body { flex:1 1 auto; min-height:0; padding:var(--s-5) var(--s-5) var(--s-5); overflow-y:auto; overscroll-behavior:contain; }
+/* the buttons of a form stay in view at the bottom of the drawer */
+.modal-body form > .row:last-child { position:sticky; bottom:calc(-1 * var(--s-5)); background:var(--c-surface); margin-top:var(--s-4); padding:var(--s-3) 0 var(--s-5); border-top:1px solid var(--c-border); z-index:1; }
+@keyframes modalFade { from { opacity:0 } } @keyframes modalSlide { from { transform:translateX(32px); opacity:0 } }
+@media (max-width:600px) { .modal { border-radius:0; } .modal-head { border-radius:0; } }
+@media (prefers-reduced-motion: reduce) { .modal, .modal-back { animation:none; } }
 /* Toast */
 .toasts { position:fixed; right:var(--s-4); bottom:var(--s-4); display:flex; flex-direction:column; gap:var(--s-2); z-index:1100; }
 .toast { background:var(--c-ink); color:var(--c-on-ink); padding:12px 16px; border-radius:var(--r-md); box-shadow:var(--sh-3); font-size:14px; border-left:4px solid var(--c-accent); animation:fadeUp .25s both; }

@@ -66,8 +66,8 @@ async function upgradeEquipment() {
   const byCode = Object.fromEntries(rows.map((r) => [r.code, r]));
   console.log(`Colleges ready: ${rows.length}`);
 
-  // Nobody is forced to change the default password any more (they can do it any time from "Change password").
-  await pool.query("UPDATE users SET must_change_password = 0 WHERE must_change_password = 1");
+  // Only college administrators are forced to change the default password at first login (everyone else may do it any time from "Change password").
+  await pool.query("UPDATE users SET must_change_password = 0 WHERE must_change_password = 1 AND role <> 'college_admin'");
   // Admin (belongs to the central office); pre-existing admins are attached to it.
   await pool.query("UPDATE users SET college_id = ?, must_change_password = 0 WHERE role = 'admin' AND college_id IS NULL", [byCode.CENTRAL.id]);
   const { ADMIN_EMAIL, ADMIN_PASSWORD } = process.env;
@@ -83,10 +83,14 @@ async function upgradeEquipment() {
   for (const c of COLLEGES.filter((x) => !x.central)) {
     const e = collegeAdminEmail(c);
     if (!(await has("SELECT 1 FROM users WHERE college_id = ? AND email = ?", [byCode[c.code].id, e]))) {
-      await pool.query("INSERT INTO users (college_id, name, email, password_hash, role, must_change_password) VALUES (?,?,?,?, 'college_admin', 0)", [byCode[c.code].id, `${c.code} Administrator`, e, hashPassword(defaultPassword())]);
+      await pool.query("INSERT INTO users (college_id, name, email, password_hash, role, must_change_password) VALUES (?,?,?,?, 'college_admin', 1)", [byCode[c.code].id, `${c.code} Administrator`, e, hashPassword(defaultPassword())]);
       console.log(`College administrator created: ${e} (${c.code})`);
     }
   }
+  // College administrators who still use the default password must change it at their next sign-in.
+  const { verifyPassword } = require("../core/security");
+  const [cas] = await pool.query("SELECT id, password_hash FROM users WHERE role = 'college_admin' AND must_change_password = 0");
+  for (const u of cas) if (verifyPassword(defaultPassword(), u.password_hash)) await pool.query("UPDATE users SET must_change_password = 1 WHERE id = ?", [u.id]);
 
   // One default principal account per college, using the official principal email. Existing principals get their email corrected.
   let made = 0, fixed = 0;

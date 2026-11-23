@@ -8,6 +8,12 @@ const { defaultPassword } = require("../../core/org");
 const router = express.Router();
 router.use(requireAuth, requireRole("admin", "college_admin"));
 // The central administrator sees every college; a college administrator sees and changes only their own college.
+router.use(async (req, res, next) => {
+  if (req.user.role !== "college_admin") return next();
+  const [[u]] = await pool.query("SELECT must_change_password FROM users WHERE id = ?", [req.user.id]);
+  if (u && u.must_change_password) return res.status(403).json({ error: "Please change your default password first." });
+  next();
+});
 router.use((req, res, next) => { req.scopeCollege = req.user.role === "college_admin" ? Number(req.user.college_id) : null; next(); });
 
 const emailOk = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -94,8 +100,8 @@ router.post("/users", async (req, res) => {
   if (Object.keys(fields).length) return res.status(400).json({ error: "Please correct the highlighted fields.", fields });
   const name = t(b.name, 120) || { admin: "Administrator", college_admin: `${college.code} Administrator`, principal: `Principal, ${college.code}`, hod: `HOD, ${department}`, lab_incharge: `${labName} Coordinator`, event_coordinator: `${event?.name} Coordinator`, event_member: email.split("@")[0] }[role];
   const [ins] = await pool.query(
-    "INSERT INTO users (college_id, name, email, password_hash, role, department, lab_name, event_id, created_by, must_change_password) VALUES (?,?,?,?,?,?,?,?,?,0)",
-    [college.id, name, email, hashPassword(password), role, department, role === "lab_incharge" ? labName : null, event ? event.id : null, req.user.id]);
+    "INSERT INTO users (college_id, name, email, password_hash, role, department, lab_name, event_id, created_by, must_change_password) VALUES (?,?,?,?,?,?,?,?,?,?)",
+    [college.id, name, email, hashPassword(password), role, department, role === "lab_incharge" ? labName : null, event ? event.id : null, req.user.id, role === "college_admin" ? 1 : 0]);
   if (role === "lab_incharge") {
     await pool.query("INSERT IGNORE INTO labs (college_id, department, name, incharge_user_id) VALUES (?,?,?,?)", [college.id, department, labName, ins.insertId]);
     await pool.query("UPDATE labs SET incharge_user_id = ? WHERE college_id = ? AND department = ? AND name = ? AND incharge_user_id IS NULL", [ins.insertId, college.id, department, labName]);

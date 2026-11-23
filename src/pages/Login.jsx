@@ -84,7 +84,7 @@ export default function Login() {
               <Button type="submit" disabled={busy} style={{ width: '100%' }}>{busy ? 'Please wait…' : 'Sign in'}</Button>
             </form>
             <p style={{ marginTop: 'var(--s-4)', fontSize: 14 }}>Want your own password? <a href="#change" onClick={(e) => { e.preventDefault(); switchMode('change') }}><b>Change password</b></a></p>
-            <p className="muted" style={{ fontSize: 13 }}>Accounts are created by your Principal (HODs) and your HOD (lab coordinators). Forgot your password? Ask them to reset it.</p>
+            <p className="muted" style={{ fontSize: 13 }}>Accounts are created by your Principal (HODs) and your HOD (lab coordinators). Forgot your password? Principals, HODs and college administrators ask SVES Central Administration; coordinators ask their HOD.</p>
           </>) : (<>
             <h2 style={{ fontSize: '1.5rem' }}>Change password</h2>
             <p className="muted">Optional. Enter your college, email and current password, then choose a new one.</p>

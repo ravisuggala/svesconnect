@@ -146,6 +146,7 @@ const CURRENT_SECTIONS = [
   { key: "basic", title: "Basic information", files: ["photos"],
     help: "A few quick facts about this equipment. Skip anything you do not know. You can come back and add it later.",
     fields: [
+      f("name", "Equipment name", "text", { help: "The name of this equipment. If it was typed wrongly, correct it here. Pick the same name other labs use so the college list stays tidy.", ...eg("Desktop Computer") }),
       f("variant", "Configuration", "text", { help: "Optional. Only needed when this lab has the same equipment in different configurations. Add each configuration as its own entry.", ...eg("Intel i5, 8 GB RAM, 512 GB SSD") }),
       f("description", "What is it used for?", "textarea", { help: "One or two lines in your own words.", ...eg("Measures voltage waveforms in electronic circuits") }),
       f("manufacturer", "Brand / make", "text", { help: "The company that made it. It is usually printed on the equipment.", ...eg("Kirloskar, Keysight, Dell") }),

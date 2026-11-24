@@ -319,6 +319,11 @@ collegeRouter.post("/equipment/:id/submit", async (req, res) => {
   if (!isOwner(req.me, eq) || !editable(eq)) return res.status(403).json({ error: "This record cannot be submitted." });
   const missing = missingRequired(buildSpec(eq.template_key), eq.data);
   if (missing.length) return res.status(400).json({ error: "Some required details are missing.", missing });
+  // The (possibly renamed) name joins the college list: an existing spelling is reused, a new name is added for every lab.
+  const key = nameKey(eq.name);
+  const [[known]] = await pool.query("SELECT name FROM equipment_catalog WHERE college_id = ? AND name_key = ?", [eq.college_id, key]);
+  if (known && known.name !== eq.name) await pool.query("UPDATE equipment SET name = ?, data = JSON_SET(data, '$.name', ?) WHERE id = ?", [known.name, known.name, eq.id]);
+  else if (!known) await pool.query("INSERT IGNORE INTO equipment_catalog (college_id, name, name_key, purpose, type_key, created_by, department) VALUES (?,?,?,?,?,?,?)", [eq.college_id, eq.name, key, String(eq.data.description || "").slice(0, 1000), isCurrent(eq.template_key) ? eq.template_key : null, req.me.id, eq.department]);
   await pool.query("UPDATE equipment SET status = 'submitted', review_note = NULL, submitted_at = NOW() WHERE id = ?", [eq.id]);
   await logHistory(eq.id, req.me, "sent to HOD", "");
   searchIndex().touch();
@@ -450,8 +455,8 @@ publicRouter.get("/colleges/:code/departments/:dept", async (req, res) => {
   if (!college) return res.status(404).json({ error: "College not found." });
   const department = String(req.params.dept);
   const [rows] = await pool.query(
-    `SELECT e.id, e.name, e.template_key, e.pub_data AS data, l.id AS lab_id, l.name AS lab_name, l.description, l.building, l.floor, l.room
-       FROM equipment e JOIN labs l ON l.id = e.lab_id WHERE e.college_id = ? AND l.department = ? AND e.pub_data IS NOT NULL ORDER BY l.name, e.name`, [college.id, department]);
+    `SELECT e.id, COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.pub_data, '$.name')), ''), e.name) AS name, e.template_key, e.pub_data AS data, l.id AS lab_id, l.name AS lab_name, l.description, l.building, l.floor, l.room
+       FROM equipment e JOIN labs l ON l.id = e.lab_id WHERE e.college_id = ? AND l.department = ? AND e.pub_data IS NOT NULL ORDER BY l.name, name`, [college.id, department]);
   if (!rows.length) return res.status(404).json({ error: "This department has no published equipment yet." });
   const [photos] = await pool.query("SELECT equipment_id, MIN(id) AS id FROM equipment_files WHERE kind = 'photos' AND equipment_id IN (?) GROUP BY equipment_id", [rows.map((r) => r.id)]);
   const photo = Object.fromEntries(photos.map((p) => [p.equipment_id, p.id]));
@@ -506,7 +511,7 @@ publicRouter.get("/labs/:id", async (req, res) => {
             COALESCE(NULLIF(l.contact_name, ''), u.name) AS coordinatorName, COALESCE(NULLIF(l.contact_email, ''), u.email) AS coordinatorEmail, l.contact_phone AS coordinatorPhone
        FROM labs l JOIN colleges c ON c.id = l.college_id LEFT JOIN users u ON u.id = l.incharge_user_id WHERE l.id = ?`, [Number(req.params.id)]);
   if (!lab) return res.status(404).json({ error: "Lab not found." });
-  const [rows] = await pool.query("SELECT id, name, template_key, pub_data AS data FROM equipment WHERE lab_id = ? AND pub_data IS NOT NULL ORDER BY name", [lab.id]);
+  const [rows] = await pool.query("SELECT e.id, COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.pub_data, '$.name')), ''), e.name) AS name, e.template_key, e.pub_data AS data FROM equipment e WHERE e.lab_id = ? AND e.pub_data IS NOT NULL ORDER BY name", [lab.id]);
   if (!rows.length) return res.status(404).json({ error: "This lab has no published equipment yet." });
   const [photos] = await pool.query("SELECT equipment_id, MIN(id) AS id FROM equipment_files WHERE kind = 'photos' AND equipment_id IN (?) GROUP BY equipment_id", [rows.map((r) => r.id)]);
   const photo = Object.fromEntries(photos.map((p) => [p.equipment_id, p.id]));
@@ -524,7 +529,7 @@ publicRouter.get("/labs/:id/record", async (req, res) => {
             COALESCE(NULLIF(l.contact_name, ''), u.name) AS coordinatorName, COALESCE(NULLIF(l.contact_email, ''), u.email) AS coordinatorEmail, l.contact_phone AS coordinatorPhone
        FROM labs l JOIN colleges c ON c.id = l.college_id LEFT JOIN users u ON u.id = l.incharge_user_id WHERE l.id = ?`, [Number(req.params.id)]);
   if (!lab) return res.status(404).json({ error: "Lab not found." });
-  const [rows] = await pool.query("SELECT *, pub_data AS data FROM equipment WHERE lab_id = ? AND pub_data IS NOT NULL ORDER BY name", [lab.id]);
+  const [rows] = await pool.query("SELECT e.*, COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.pub_data, '$.name')), ''), e.name) AS name, e.pub_data AS data FROM equipment e WHERE e.lab_id = ? AND e.pub_data IS NOT NULL ORDER BY name", [lab.id]);
   if (!rows.length) return res.status(404).json({ error: "This lab has no published equipment yet." });
   const [photos] = await pool.query("SELECT equipment_id, MIN(id) AS id FROM equipment_files WHERE kind = 'photos' AND equipment_id IN (?) GROUP BY equipment_id", [rows.map((r) => r.id)]);
   const photo = Object.fromEntries(photos.map((p) => [p.equipment_id, p.id]));
@@ -533,7 +538,7 @@ publicRouter.get("/labs/:id/record", async (req, res) => {
 
 publicRouter.get("/equipment/:id", async (req, res) => {
   const [[row]] = await pool.query(
-    `SELECT e.*, l.name AS lab_name, l.id AS lab_id, c.code AS college_code, c.name AS college_name
+    `SELECT e.*, COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.pub_data, '$.name')), ''), e.name) AS name, l.name AS lab_name, l.id AS lab_id, c.code AS college_code, c.name AS college_name
        FROM equipment e JOIN labs l ON l.id = e.lab_id JOIN colleges c ON c.id = e.college_id WHERE e.id = ? AND e.pub_data IS NOT NULL`, [Number(req.params.id)]);
   if (!row) return res.status(404).json({ error: "Equipment not found." });
   const eq = parse({ ...row, data: row.pub_data });

@@ -14,8 +14,8 @@ const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
 // All approved equipment of one college, grouped by (normalised) name, with public facts only.
 async function groups(collegeId) {
   const [rows] = await pool.query(
-    `SELECT e.id, e.name, e.template_key, e.pub_data AS data, e.approved_at, l.id AS lab_id, l.name AS lab_name, l.department
-       FROM equipment e JOIN labs l ON l.id = e.lab_id WHERE e.college_id = ? AND e.pub_data IS NOT NULL ORDER BY e.name`, [collegeId]);
+    `SELECT e.id, COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(e.pub_data, '$.name')), ''), e.name) AS name, e.template_key, e.pub_data AS data, e.approved_at, l.id AS lab_id, l.name AS lab_name, l.department
+       FROM equipment e JOIN labs l ON l.id = e.lab_id WHERE e.college_id = ? AND e.pub_data IS NOT NULL ORDER BY name`, [collegeId]);
   const ids = rows.map((r) => r.id);
   const [photos] = ids.length ? await pool.query("SELECT equipment_id, MIN(id) AS id FROM equipment_files WHERE kind = 'photos' AND equipment_id IN (?) GROUP BY equipment_id", [ids]) : [[]];
   const photo = Object.fromEntries(photos.map((p) => [p.equipment_id, p.id]));

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Check, FileText, Pencil, Trash2, X } from 'lucide-react'
+import { Check, Pencil, Trash2, X } from 'lucide-react'
 import { Badge, Button, Card, Loader, Modal, useDialog, useToast } from '../../ui'
-import { api, openFile } from '../../core/api'
+import { api } from '../../core/api'
 import { useAuth } from '../../core/auth'
 import EquipmentSections from './EquipmentSections'
 import { STATUS } from './spec'
@@ -49,11 +49,7 @@ export default function EquipmentView() {
           <p className="muted">Approving is the final approval and publishes it on the public lab page. Or send it back with a note.</p>
           <div className="row"><Button onClick={() => decide('approve')}><Check size={16} /> Approve & publish</Button><Button variant="ghost" onClick={() => setReject({ note: '' })}><X size={16} /> Send back</Button></div>
         </Card>)}
-      <EquipmentSections sections={spec.sections} data={e.data} highValueLakhs={spec.highValueLakhs} />
-      {files.length > 0 && (
-        <section className="eq-sec"><h3>Documents & photos</h3>
-          {spec.fileKinds.map((k) => { const list = files.filter((f) => f.kind === k.key); return list.length ? <div key={k.key} className="eq-row"><dt>{k.label}</dt><dd>{list.map((f) => <div key={f.id}><FileText size={14} /> <a href="#" onClick={(ev) => { ev.preventDefault(); openFile(`/c/${college}/files/${f.id}`).catch((er) => toast(er.message, 'error')) }}>{f.name}</a></div>)}</dd></div> : null })}
-        </section>)}
+      <EquipmentSections sections={spec.sections} data={e.data} highValueLakhs={spec.highValueLakhs} files={files} fileKinds={spec.fileKinds} college={college} />
       <Modal size="sm" open={!!reject} title="Send back to the coordinator" onClose={() => setReject(null)}>
         {reject && <><div className="field"><label>What needs to be fixed?</label><textarea className="textarea" rows={4} value={reject.note} onChange={(ev) => setReject({ note: ev.target.value })} /></div>
           <div className="row" style={{ justifyContent: 'flex-end' }}><Button variant="ghost" onClick={() => setReject(null)}>Cancel</Button><Button disabled={reject.note.trim().length < 3} onClick={() => decide('reject', reject.note)}>Send back</Button></div></>}

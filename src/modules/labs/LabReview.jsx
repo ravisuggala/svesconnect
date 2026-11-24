@@ -62,7 +62,7 @@ export default function LabReview() {
             </span>
           </div>
           {e.status === 'rejected' && e.reviewNote && <p className="helpbox">Sent back: {e.reviewNote}</p>}
-          <EquipmentSections sections={e.sections} data={e.data} highValueLakhs={1.5} />
+          <EquipmentSections sections={e.sections} data={e.data} highValueLakhs={1.5} files={e.files} fileKinds={d.fileKinds} college={college} />
           {e.history.length > 0 && <p className="muted no-print" style={{ fontSize: 13 }}><History size={13} style={{ verticalAlign: '-2px' }} /> {e.history.map((h) => `${h.action}${h.detail ? ` (${h.detail.length > 80 ? `${h.detail.slice(0, 80)}…` : h.detail})` : ''} by ${h.who || h.role} on ${when(h.at)}`).slice(0, 3).join(' · ')}</p>}
         </section>))}
 

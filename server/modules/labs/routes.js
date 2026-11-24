@@ -7,6 +7,7 @@ const pool = require("../../db/pool");
 const { collegeContext } = require("../../core/college");
 const searchIndex = () => require("../search/index"); // lazy: keeps the index optional and avoids load-order issues
 const summary = require("./summary");
+const { previewOf } = require("../../core/preview");
 const nameKey = summary.nameKey;
 const { buildSpec, templateList, categoryList, isCurrent, findTemplate, missingRequired, allowedKeys, isVisible, FILE_KINDS } = require("./formSpec");
 
@@ -220,9 +221,9 @@ collegeRouter.get("/labs/:id/record", async (req, res) => {
   const ids = rows.map((r) => r.id);
   const [files] = ids.length ? await pool.query("SELECT id, equipment_id, kind, original_name AS name, size FROM equipment_files WHERE equipment_id IN (?) ORDER BY id", [ids]) : [[]];
   const [hist] = ids.length ? await pool.query("SELECT equipment_id, user_name AS who, role, action, detail, created_at AS at FROM equipment_history WHERE equipment_id IN (?) ORDER BY id DESC", [ids]) : [[]];
-  res.json({ lab, college: c,
+  res.json({ lab, college: c, fileKinds: FILE_KINDS,
     can: { approve: (req.me.role === "hod" && lab.department === req.me.department) || req.me.role === "admin", edit: req.me.role === "hod" || req.me.role === "admin" },
-    equipment: rows.map((r) => { const eq = parse(r); const spec = buildSpec(eq.template_key); return { id: eq.id, name: eq.name, status: eq.status, published: !!r.pub_data, reviewNote: eq.review_note, type: spec.template?.label, data: eq.data, sections: spec.sections.filter((s) => !s.files || s.fields.length), files: files.filter((f) => f.equipment_id === eq.id), history: hist.filter((h) => h.equipment_id === eq.id).slice(0, 6) }; }) });
+    equipment: rows.map((r) => { const eq = parse(r); const spec = buildSpec(eq.template_key); return { id: eq.id, name: eq.name, status: eq.status, published: !!r.pub_data, reviewNote: eq.review_note, type: spec.template?.label, data: eq.data, sections: spec.sections, files: files.filter((f) => f.equipment_id === eq.id), history: hist.filter((h) => h.equipment_id === eq.id).slice(0, 6) }; }) });
 });
 
 // Final approval of a whole lab: everything the in-charge has sent (new equipment and changes) goes live together. Items sent back stay as they are.
@@ -403,6 +404,15 @@ collegeRouter.get("/files/:fileId", async (req, res) => {
   if (!hit) return res.status(404).json({ error: "File not found." });
   sendStored(res, hit.f);
 });
+// Read-only text/table preview of a Word or Excel upload for the "Show proof" window (images and PDFs are shown from the file itself).
+collegeRouter.get("/files/:fileId/preview", async (req, res) => {
+  const hit = await loadFile(req);
+  if (!hit) return res.status(404).json({ error: "File not found." });
+  const p = path.join(STORAGE, hit.f.stored_name);
+  if (!fs.existsSync(p)) return res.status(404).json({ error: "File missing on server." });
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ name: hit.f.original_name, ...previewOf(fs.readFileSync(p), path.extname(hit.f.stored_name).slice(1).toLowerCase()) });
+});
 collegeRouter.delete("/files/:fileId", async (req, res) => {
   const hit = await loadFile(req);
   if (!hit) return res.status(404).json({ error: "File not found." });
@@ -417,6 +427,7 @@ function sendStored(res, f) {
   res.setHeader("Content-Type", f.mime || "application/octet-stream");
   res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(f.original_name)}"`);
   res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "private, no-store");
   fs.createReadStream(p).pipe(res);
 }
 

@@ -115,6 +115,7 @@ function Users({ colleges, scoped, ownCode }) {
   ]
   return (
     <>
+      {scoped && <p className="helpbox">Create a login for each HOD of your college here (choose “Head of Department” and the department). Each HOD then creates the lab in-charges for the labs of that department.</p>}
       <div className="adm-filters">
         {!scoped && <Select label="College" value={filter.college} onChange={(e) => setFilter({ ...filter, college: e.target.value })} options={[{ value: '', label: 'All colleges' }, ...colleges.map((c) => ({ value: c.code, label: c.code }))]} />}
         <Select label="Role" value={filter.role} onChange={(e) => setFilter({ ...filter, role: e.target.value })} options={[{ value: '', label: 'All roles' }, ...roleOptions.map((r) => ({ value: r, label: ROLE_LABEL[r] }))]} />

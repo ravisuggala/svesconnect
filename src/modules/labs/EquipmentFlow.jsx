@@ -10,7 +10,7 @@ import './labs.css'
 const ICONS = { basic: Info, purchase: Receipt, financial: Receipt, technical: Cpu, template: Cpu, service: Wrench, warranty: Wrench, operation: ShieldCheck, operations: ShieldCheck, usage: BookOpen, documents: FolderOpen, contact: Phone }
 const WEIGHT = { textarea: 2, list: 2, kv: 3, counts: 3 }
 const WIDE = new Set(['textarea', 'list', 'kv', 'counts'])
-const PAGE_WEIGHT = 10 // a page holds about ten simple fields; bigger categories continue on a second page
+const PAGE_WEIGHT = 14 // fields sit in two columns, so a page holds about fourteen weight units; only much bigger categories continue on a second page
 
 /** The equipment form: one page per category with all its fields visible together. Everything autosaves. */
 export default function EquipmentFlow() {

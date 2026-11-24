@@ -156,6 +156,15 @@ collegeRouter.patch("/labs/:id", async (req, res) => {
   if (!lab || !(req.me.role === "lab_incharge" && req.me.lab_id === lab.id)) return res.status(403).json({ error: "Only the lab coordinator can edit the lab profile." });
   const b = req.body || {};
   const t = (v, m) => String(v ?? "").trim().slice(0, m);
+  // The coordinator may correct the lab's name (for example a typing mistake when the account was created).
+  const newName = b.name === undefined ? lab.name : String(b.name).trim().replace(/\s+/g, " ").slice(0, 160);
+  if (newName.length < 2) return res.status(400).json({ error: "Please enter the lab name.", fields: { name: "Please enter the lab name." } });
+  if (newName !== lab.name) {
+    const [dup] = await pool.query("SELECT id FROM labs WHERE college_id = ? AND department = ? AND name = ? AND id <> ?", [lab.college_id, lab.department, newName, lab.id]);
+    if (dup.length) return res.status(409).json({ error: "This department already has a lab with that name.", fields: { name: "This department already has a lab with that name." } });
+    await pool.query("UPDATE labs SET name = ? WHERE id = ?", [newName, lab.id]);
+    await pool.query("UPDATE users SET lab_name = ? WHERE id = ?", [newName, req.me.id]);
+  }
   await pool.query("UPDATE labs SET description = ?, building = ?, floor = ?, room = ?, accessibility = ?, contact_name = ?, contact_email = ?, contact_phone = ? WHERE id = ?", [t(b.description, 3000), t(b.building, 120), t(b.floor, 60), t(b.room, 60), t(b.accessibility, 60), t(b.contact_name, 160), t(b.contact_email, 190), t(b.contact_phone, 40), lab.id]);
   searchIndex().touch();
   res.json({ ok: true });

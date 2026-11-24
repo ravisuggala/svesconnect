@@ -38,7 +38,7 @@ export default function LabHome() {
 
   const saveProfile = async (ev) => {
     ev.preventDefault()
-    try { await api(`/c/${college}/labs/${lab.id}`, { method: 'PATCH', body: profile }); setProfile(null); toast('Lab profile saved'); reload() } catch (e) { toast(e.message, 'error') }
+    try { await api(`/c/${college}/labs/${lab.id}`, { method: 'PATCH', body: profile }); setProfile(null); toast('Lab profile saved'); setErrors({}); reload() } catch (e) { setErrors(e.fields || {}); toast(e.message, 'error') }
   }
   const create = async (ev) => {
     ev.preventDefault(); setErrors({})
@@ -57,7 +57,7 @@ export default function LabHome() {
   return (
     <div className="fade-up">
       <div className="row"><div><Badge tone="primary">{user.college.name} · {user.department}</Badge><h2 style={{ margin: 'var(--s-2) 0 0' }}>{lab?.name || user.labName}</h2></div><span className="spacer" />
-        <Button variant="ghost" onClick={() => setProfile({ description: lab.description || '', building: lab.building || '', floor: lab.floor || '', room: lab.room || '', accessibility: lab.accessibility || '', contact_name: lab.contact_name || '', contact_email: lab.contact_email || '', contact_phone: lab.contact_phone || '' })} disabled={!lab}><Pencil size={14} /> Lab profile</Button>
+        <Button variant="ghost" onClick={() => setProfile({ name: lab.name, description: lab.description || '', building: lab.building || '', floor: lab.floor || '', room: lab.room || '', accessibility: lab.accessibility || '', contact_name: lab.contact_name || '', contact_email: lab.contact_email || '', contact_phone: lab.contact_phone || '' })} disabled={!lab}><Pencil size={14} /> Lab profile</Button>
         <Button variant="ghost" as={Link} to={`/c/${college}/lab/record`}><FileText size={14} /> Lab record</Button>
         <Button onClick={() => { setErrors({}); setKnown(null); setAdd({ name: '', purpose: '', templateKey: '', variant: '' }) }} disabled={!lab}><Plus size={16} /> Add equipment</Button></div>
       {lab && <p className="muted" style={{ margin: 'var(--s-3) 0' }}>{lab.description || 'Add a short description of your lab in “Lab profile”.'}{(lab.building || lab.room) && ` · ${[lab.building, lab.floor && `Floor ${lab.floor}`, lab.room && `Room ${lab.room}`].filter(Boolean).join(', ')}`}</p>}
@@ -88,6 +88,7 @@ export default function LabHome() {
 
       <Modal open={!!profile} title="Lab profile" onClose={() => setProfile(null)}>
         {profile && <form onSubmit={saveProfile}>
+          <Input label="Lab name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} error={errors.name} hint="Correct it here if it was typed wrongly. It changes everywhere." />
           <Field2 label="Description"><textarea className="textarea" rows={3} value={profile.description} onChange={(e) => setProfile({ ...profile, description: e.target.value })} /></Field2>
           <Input label="Building" value={profile.building} onChange={(e) => setProfile({ ...profile, building: e.target.value })} />
           <div className="grid cols-2"><Input label="Floor" value={profile.floor} onChange={(e) => setProfile({ ...profile, floor: e.target.value })} /><Input label="Room" value={profile.room} onChange={(e) => setProfile({ ...profile, room: e.target.value })} /></div>
